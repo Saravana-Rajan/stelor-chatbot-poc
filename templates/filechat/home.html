@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat with Your Files</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-3xl font-bold mb-8">Chat with Your Files</h1>
+        
+        <!-- File Upload Section -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 class="text-xl font-semibold mb-4">Upload Files</h2>
+            <form id="uploadForm" class="space-y-4">
+                <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                    <input type="file" id="fileInput" class="hidden" multiple>
+                    <label for="fileInput" class="cursor-pointer">
+                        <div class="text-gray-600">
+                            <svg class="mx-auto h-12 w-12 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                            </svg>
+                            <p>Drag and drop files here or click to select</p>
+                            <p class="text-sm text-gray-500 mt-2">Supported formats: PDF, CSV, TXT, DOCX, XLSX, Images</p>
+                        </div>
+                    </label>
+                </div>
+                <div id="fileList" class="space-y-2"></div>
+            </form>
+        </div>
+        
+        <!-- Chat Section -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-xl font-semibold mb-4">Chat</h2>
+            <div id="chatMessages" class="space-y-4 mb-4 h-96 overflow-y-auto">
+                <!-- Messages will be added here -->
+            </div>
+            <form id="chatForm" class="flex space-x-4">
+                <input type="text" id="messageInput" class="flex-1 rounded-lg border border-gray-300 px-4 py-2 focus:outline-none focus:border-blue-500" placeholder="Ask a question about your files...">
+                <button type="submit" class="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 focus:outline-none">Send</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let currentSessionId = null;
+        const fileList = document.getElementById('fileList');
+        const chatMessages = document.getElementById('chatMessages');
+        const messageInput = document.getElementById('messageInput');
+        const chatForm = document.getElementById('chatForm');
+        const uploadForm = document.getElementById('uploadForm');
+        const fileInput = document.getElementById('fileInput');
+
+        // Handle file upload
+        uploadForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const files = fileInput.files;
+            
+            for (let file of files) {
+                const formData = new FormData();
+                formData.append('file', file);
+                
+                try {
+                    const response = await fetch('/upload/', {
+                        method: 'POST',
+                        body: formData,
+                        credentials: 'include'
+                    });
+                    
+                    const data = await response.json();
+                    if (data.status === 'success') {
+                        addFileToList(file.name);
+                    } else {
+                        alert(`Error uploading ${file.name}: ${data.message}`);
+                    }
+                } catch (error) {
+                    alert(`Error uploading ${file.name}: ${error.message}`);
+                }
+            }
+        });
+
+        // Handle chat messages
+        chatForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const message = messageInput.value.trim();
+            if (!message) return;
+
+            // Add user message to chat
+            addMessageToChat('user', message);
+            messageInput.value = '';
+
+            try {
+                const response = await fetch(`/chat/${currentSessionId}/message/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ message }),
+                    credentials: 'include'
+                });
+
+                const data = await response.json();
+                if (data.status === 'success') {
+                    addMessageToChat('assistant', data.response, data.sources);
+                } else {
+                    addMessageToChat('assistant', `Error: ${data.message}`);
+                }
+            } catch (error) {
+                addMessageToChat('assistant', `Error: ${error.message}`);
+            }
+        });
+
+        function addFileToList(filename) {
+            const div = document.createElement('div');
+            div.className = 'flex items-center justify-between bg-gray-50 p-2 rounded';
+            div.innerHTML = `
+                <span class="text-gray-700">${filename}</span>
+                <button class="text-red-500 hover:text-red-700" onclick="this.parentElement.remove()">×</button>
+            `;
+            fileList.appendChild(div);
+        }
+
+        function addMessageToChat(type, content, sources = []) {
+            const div = document.createElement('div');
+            div.className = `flex ${type === 'user' ? 'justify-end' : 'justify-start'}`;
+            
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `max-w-3/4 rounded-lg p-3 ${
+                type === 'user' 
+                    ? 'bg-blue-500 text-white' 
+                    : 'bg-gray-200 text-gray-800'
+            }`;
+            
+            messageDiv.textContent = content;
+            
+            if (sources && sources.length > 0) {
+                const sourcesDiv = document.createElement('div');
+                sourcesDiv.className = 'text-xs text-gray-500 mt-1';
+                sourcesDiv.textContent = `Sources: ${sources.map(s => 
+                    `${s.file_type} (${s.page || s.paragraph || 'N/A'})`
+                ).join(', ')}`;
+                messageDiv.appendChild(sourcesDiv);
+            }
+            
+            div.appendChild(messageDiv);
+            chatMessages.appendChild(div);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // Create a new chat session when files are uploaded
+        async function createChatSession() {
+            try {
+                const response = await fetch('/chat/create/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ title: 'New Chat' }),
+                    credentials: 'include'
+                });
+
+                const data = await response.json();
+                if (data.status === 'success') {
+                    currentSessionId = data.session_id;
+                }
+            } catch (error) {
+                console.error('Error creating chat session:', error);
+            }
+        }
+
+        // Initialize chat session
+        createChatSession();
+    </script>
+</body>
+</html> 
