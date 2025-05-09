@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 import uuid
+from .utils import delete_document_chunks
 
 class Document(models.Model):
     FILE_TYPES = (
@@ -21,8 +22,17 @@ class Document(models.Model):
     is_processed = models.BooleanField(default=False)
     metadata = models.JSONField(default=dict, blank=True)
 
+    def delete(self, *args, **kwargs):
+        # Delete chunks from ChromaDB
+        delete_document_chunks(str(self.id))
+        # Delete the actual file and database record
+        super().delete(*args, **kwargs)
+
     def __str__(self):
         return f"{self.original_filename} ({self.file_type})"
+
+    class Meta:
+        ordering = ['-uploaded_at']
 
 class DocumentChunk(models.Model):
     document = models.ForeignKey(Document, on_delete=models.CASCADE, related_name='chunks')

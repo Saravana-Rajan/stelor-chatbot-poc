@@ -5,6 +5,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chat with Your Files</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        .viz-container {
+            width: 100%;
+            min-height: 400px;
+            margin: 1rem 0;
+            position: relative;
+        }
+        .plotly-graph-div {
+            width: 100% !important;
+            height: 100% !important;
+            min-height: 400px !important;
+            position: relative !important;
+        }
+        .message-container {
+            max-width: 90%;
+            width: 100%;
+        }
+    </style>
 </head>
 <body class="bg-gray-100">
     <div class="container mx-auto px-4 py-8">
@@ -14,8 +33,13 @@
         <div class="bg-white rounded-lg shadow-md p-6 mb-8">
             <h2 class="text-xl font-semibold mb-4">Upload Files</h2>
             <form id="uploadForm" class="space-y-4">
-                <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                    <input type="file" id="fileInput" class="hidden" multiple>
+                {% csrf_token %}
+                <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center" 
+                     id="dropZone"
+                     ondrop="handleDrop(event)"
+                     ondragover="handleDragOver(event)"
+                     ondragleave="handleDragLeave(event)">
+                    <input type="file" id="fileInput" class="hidden" multiple accept=".pdf,.csv,.txt,.docx,.xlsx,.jpg,.jpeg,.png">
                     <label for="fileInput" class="cursor-pointer">
                         <div class="text-gray-600">
                             <svg class="mx-auto h-12 w-12 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -25,6 +49,12 @@
                             <p class="text-sm text-gray-500 mt-2">Supported formats: PDF, CSV, TXT, DOCX, XLSX, Images</p>
                         </div>
                     </label>
+                </div>
+                <div id="uploadProgress" class="hidden">
+                    <div class="w-full bg-gray-200 rounded-full h-2.5">
+                        <div class="bg-blue-600 h-2.5 rounded-full" style="width: 0%" id="progressBar"></div>
+                    </div>
+                    <p id="uploadStatus" class="text-sm text-gray-600 mt-2"></p>
                 </div>
                 <div id="fileList" class="space-y-2"></div>
             </form>
@@ -51,34 +81,104 @@
         const chatForm = document.getElementById('chatForm');
         const uploadForm = document.getElementById('uploadForm');
         const fileInput = document.getElementById('fileInput');
+        const dropZone = document.getElementById('dropZone');
+        const uploadProgress = document.getElementById('uploadProgress');
+        const progressBar = document.getElementById('progressBar');
+        const uploadStatus = document.getElementById('uploadStatus');
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
-        // Handle file upload
-        uploadForm.addEventListener('submit', async (e) => {
+        // Handle file input change
+        fileInput.addEventListener('change', handleFileSelect);
+
+        function handleDragOver(e) {
             e.preventDefault();
-            const files = fileInput.files;
-            
+            dropZone.classList.add('border-blue-500');
+        }
+
+        function handleDragLeave(e) {
+            e.preventDefault();
+            dropZone.classList.remove('border-blue-500');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            dropZone.classList.remove('border-blue-500');
+            const files = e.dataTransfer.files;
+            handleFiles(files);
+        }
+
+        function handleFileSelect(e) {
+            const files = e.target.files;
+            handleFiles(files);
+        }
+
+        async function handleFiles(files) {
             for (let file of files) {
-                const formData = new FormData();
-                formData.append('file', file);
-                
-                try {
-                    const response = await fetch('/upload/', {
-                        method: 'POST',
-                        body: formData,
-                        credentials: 'include'
-                    });
-                    
-                    const data = await response.json();
-                    if (data.status === 'success') {
-                        addFileToList(file.name);
-                    } else {
-                        alert(`Error uploading ${file.name}: ${data.message}`);
-                    }
-                } catch (error) {
-                    alert(`Error uploading ${file.name}: ${error.message}`);
-                }
+                await uploadFile(file);
             }
-        });
+        }
+
+        async function uploadFile(file) {
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            // Show progress bar
+            uploadProgress.classList.remove('hidden');
+            progressBar.style.width = '0%';
+            uploadStatus.textContent = `Uploading ${file.name}...`;
+            
+            try {
+                const response = await fetch('/upload/', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-CSRFToken': csrfToken
+                    },
+                    credentials: 'include'
+                });
+                
+                const data = await response.json();
+                if (data.status === 'success') {
+                    progressBar.style.width = '100%';
+                    uploadStatus.textContent = `${file.name} uploaded and processed successfully!`;
+                    addFileToList(file.name, data.document_id);
+                    
+                    // Create or update chat session with the new file
+                    if (!currentSessionId) {
+                        await createChatSession([data.document_id]);
+                    } else {
+                        await addDocumentToSession(currentSessionId, data.document_id);
+                    }
+                } else {
+                    uploadStatus.textContent = `Error uploading ${file.name}: ${data.message}`;
+                }
+            } catch (error) {
+                uploadStatus.textContent = `Error uploading ${file.name}: ${error.message}`;
+            }
+            
+            // Hide progress bar after a delay
+            setTimeout(() => {
+                uploadProgress.classList.add('hidden');
+            }, 3000);
+        }
+
+        function addFileToList(filename, documentId) {
+            const div = document.createElement('div');
+            div.className = 'flex items-center justify-between bg-gray-50 p-2 rounded';
+            div.innerHTML = `
+                <span class="text-gray-700">${filename}</span>
+                <div class="flex space-x-2">
+                    <span class="text-green-500">✓ Processed</span>
+                    <button class="text-red-500 hover:text-red-700" onclick="removeFile('${documentId}', this)">×</button>
+                </div>
+            `;
+            fileList.appendChild(div);
+        }
+
+        async function removeFile(documentId, button) {
+            // TODO: Add endpoint to remove file
+            button.closest('div.flex').remove();
+        }
 
         // Handle chat messages
         chatForm.addEventListener('submit', async (e) => {
@@ -95,52 +195,150 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
                     },
                     body: JSON.stringify({ message }),
                     credentials: 'include'
                 });
 
                 const data = await response.json();
+                console.log('Raw chat response:', data);  // Debug full response
+                
                 if (data.status === 'success') {
+                    console.log('Full response content:', JSON.stringify(data.response, null, 2));  // Pretty print response
+                    if (data.response.visualization) {
+                        console.log('Visualization object:', JSON.stringify(data.response.visualization, null, 2));  // Debug visualization object
+                    }
                     addMessageToChat('assistant', data.response, data.sources);
                 } else {
                     addMessageToChat('assistant', `Error: ${data.message}`);
                 }
             } catch (error) {
+                console.error('Error sending message:', error);
                 addMessageToChat('assistant', `Error: ${error.message}`);
             }
         });
 
-        function addFileToList(filename) {
-            const div = document.createElement('div');
-            div.className = 'flex items-center justify-between bg-gray-50 p-2 rounded';
-            div.innerHTML = `
-                <span class="text-gray-700">${filename}</span>
-                <button class="text-red-500 hover:text-red-700" onclick="this.parentElement.remove()">×</button>
-            `;
-            fileList.appendChild(div);
-        }
-
         function addMessageToChat(type, content, sources = []) {
+            console.log('Adding message type:', type);
+            console.log('Message content:', JSON.stringify(content, null, 2));
+            
             const div = document.createElement('div');
-            div.className = `flex ${type === 'user' ? 'justify-end' : 'justify-start'}`;
+            div.className = `flex ${type === 'user' ? 'justify-end' : 'justify-start'} mb-4 w-full`;
             
             const messageDiv = document.createElement('div');
-            messageDiv.className = `max-w-3/4 rounded-lg p-3 ${
-                type === 'user' 
-                    ? 'bg-blue-500 text-white' 
-                    : 'bg-gray-200 text-gray-800'
-            }`;
+            messageDiv.className = `message-container ${type === 'user' ? 'bg-blue-500 text-white' : 'bg-gray-100'} rounded-lg px-4 py-2`;
             
-            messageDiv.textContent = content;
+            // Handle different response types
+            if (typeof content === 'object' && content !== null) {
+                console.log('Processing object content');
+                
+                // Handle text response
+                if (content.text) {
+                    const textDiv = document.createElement('div');
+                    textDiv.className = 'whitespace-pre-wrap mb-4';
+                    textDiv.textContent = content.text;
+                    messageDiv.appendChild(textDiv);
+                    console.log('Added text content:', content.text);
+                }
+                
+                // Handle visualization
+                if (content.visualization && content.visualization.content) {
+                    console.log('Found visualization content');
+                    
+                    // Create container for visualization
+                    const vizContainer = document.createElement('div');
+                    vizContainer.className = 'viz-container';
+                    
+                    // Create a unique ID for the visualization
+                    const vizId = `viz-${Date.now()}`;
+                    vizContainer.id = vizId;
+                    
+                    // Add the container to the message
+                    messageDiv.appendChild(vizContainer);
+                    div.appendChild(messageDiv);
+                    chatMessages.appendChild(div);
+                    
+                    try {
+                        // First try to parse as JSON
+                        const contentStr = content.visualization.content;
+                        if (contentStr.trim().startsWith('{')) {
+                            const vizData = JSON.parse(contentStr);
+                            const layout = {
+                                ...vizData.layout,
+                                autosize: true,
+                                width: undefined,
+                                height: undefined,
+                                margin: { t: 30, b: 40, l: 50, r: 30 }
+                            };
+                            
+                            Plotly.newPlot(vizId, vizData.data, layout, {
+                                responsive: true,
+                                displayModeBar: true,
+                                displaylogo: false,
+                                modeBarButtonsToRemove: ['sendDataToCloud']
+                            });
+                        } else {
+                            // Handle HTML content
+                            console.log('Handling HTML visualization content');
+                            
+                            // Create a temporary container to parse the HTML
+                            const tempContainer = document.createElement('div');
+                            tempContainer.innerHTML = contentStr;
+                            
+                            // Find any script tags and execute them
+                            const scripts = tempContainer.getElementsByTagName('script');
+                            const scriptContents = [];
+                            
+                            // Extract script contents and remove script tags
+                            Array.from(scripts).forEach(script => {
+                                scriptContents.push(script.textContent);
+                                script.remove();
+                            });
+                            
+                            // Add the remaining HTML to the container
+                            vizContainer.innerHTML = tempContainer.innerHTML;
+                            
+                            // Execute the scripts after a short delay to ensure the DOM is ready
+                            setTimeout(() => {
+                                scriptContents.forEach(scriptContent => {
+                                    try {
+                                        // Create a new script element
+                                        const scriptElement = document.createElement('script');
+                                        scriptElement.textContent = scriptContent;
+                                        document.head.appendChild(scriptElement);
+                                        // Clean up
+                                        document.head.removeChild(scriptElement);
+                                    } catch (err) {
+                                        console.error('Error executing visualization script:', err);
+                                    }
+                                });
+                                
+                                // Force a resize after everything is loaded
+                                window.dispatchEvent(new Event('resize'));
+                            }, 100);
+                        }
+                    } catch (error) {
+                        console.error('Error handling visualization:', error);
+                        // If all else fails, just insert the content directly
+                        vizContainer.innerHTML = content.visualization.content;
+                    }
+                    
+                    return; // Exit early since we've already added the message to chat
+                }
+            } else {
+                // Handle plain text messages (e.g., user messages)
+                messageDiv.textContent = content;
+                console.log('Added plain text content:', content);
+            }
             
+            // Add sources if available
             if (sources && sources.length > 0) {
                 const sourcesDiv = document.createElement('div');
-                sourcesDiv.className = 'text-xs text-gray-500 mt-1';
-                sourcesDiv.textContent = `Sources: ${sources.map(s => 
-                    `${s.file_type} (${s.page || s.paragraph || 'N/A'})`
-                ).join(', ')}`;
+                sourcesDiv.className = 'mt-2 text-xs text-gray-500';
+                sourcesDiv.textContent = `Sources: ${sources.map(s => s.file_type).join(', ')}`;
                 messageDiv.appendChild(sourcesDiv);
+                console.log('Added sources:', sources);
             }
             
             div.appendChild(messageDiv);
@@ -148,24 +346,51 @@
             chatMessages.scrollTop = chatMessages.scrollHeight;
         }
 
-        // Create a new chat session when files are uploaded
-        async function createChatSession() {
+        // Create a new chat session
+        async function createChatSession(documentIds = []) {
             try {
                 const response = await fetch('/chat/create/', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
                     },
-                    body: JSON.stringify({ title: 'New Chat' }),
+                    body: JSON.stringify({ 
+                        title: 'New Chat',
+                        document_ids: documentIds
+                    }),
                     credentials: 'include'
                 });
 
                 const data = await response.json();
                 if (data.status === 'success') {
                     currentSessionId = data.session_id;
+                    console.log('Chat session created:', currentSessionId);
                 }
             } catch (error) {
                 console.error('Error creating chat session:', error);
+                uploadStatus.textContent = 'Error creating chat session. Please try again.';
+            }
+        }
+
+        // Add document to existing session
+        async function addDocumentToSession(sessionId, documentId) {
+            try {
+                const response = await fetch(`/chat/session/${sessionId}/add_document/${documentId}/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrfToken
+                    },
+                    credentials: 'include'
+                });
+
+                const data = await response.json();
+                if (data.status !== 'success') {
+                    throw new Error(data.message);
+                }
+            } catch (error) {
+                console.error('Error adding document to session:', error);
+                uploadStatus.textContent = 'Error adding document to chat session. Please try again.';
             }
         }
 
