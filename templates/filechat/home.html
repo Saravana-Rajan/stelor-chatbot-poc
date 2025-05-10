@@ -35,6 +35,8 @@
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             letter-spacing: -0.5px;
+            padding: 0 0 10px 0;
+            display: inline-block;
         }
         
         .section-title {
@@ -169,18 +171,33 @@
         ::-webkit-scrollbar-thumb:hover {
             background: #a1a1a1;
         }
+
+        /* Media query for smaller screens */
+        @media (max-width: 1024px) {
+            .grid-cols-1 {
+                max-width: 100%;
+            }
+            
+            #chatMessages {
+                height: 500px;
+            }
+            
+            .viz-container {
+                min-height: 300px;
+            }
+        }
     </style>
 </head>
 <body>
-    <div class="container mx-auto px-4 py-10 max-w-6xl">
+    <div class="container mx-auto px-4 py-10 max-w-[95%]">
         <header class="mb-12 text-center">
             <h1 class="app-title text-5xl mb-3">Insight Vault</h1>
             <p class="text-gray-600 text-lg">Unlock the knowledge in your documents with AI-powered conversation</p>
         </header>
         
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <!-- File Upload Section -->
-            <div class="lg:col-span-1">
+        <div class="grid grid-cols-1 lg:grid-cols-7 gap-6">
+            <!-- File Upload Section - Narrower -->
+            <div class="lg:col-span-2">
                 <div class="card bg-white p-6 mb-6">
                     <h2 class="section-title text-xl mb-4 flex items-center">
                         <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -202,7 +219,7 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
                                     </svg>
                                     <p class="font-medium">Drag and drop files here or click to select</p>
-                                    <p class="text-sm text-gray-500 mt-2">Supported formats: PDF, CSV, TXT, DOCX, XLSX, Images</p>
+                                    <p class="text-sm text-gray-500 mt-2">Supported formats: PDF, CSV, TXT, DOCX, XLSX </p>
                                 </div>
                             </label>
                         </div>
@@ -222,7 +239,7 @@
                         </svg>
                         Your Files
                     </h2>
-                    <div id="fileList" class="space-y-2 max-h-96 overflow-y-auto">
+                    <div id="fileList" class="space-y-2 max-h-60 overflow-y-auto pr-1">
                         <!-- Files will be added here -->
                         <div class="text-gray-500 text-center py-6">
                             <svg class="mx-auto h-10 w-10 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -234,8 +251,8 @@
                 </div>
             </div>
             
-            <!-- Chat Section -->
-            <div class="lg:col-span-2">
+            <!-- Chat Section - Wider -->
+            <div class="lg:col-span-5">
                 <div class="card bg-white p-6 h-full flex flex-col">
                     <h2 class="section-title text-xl mb-4 flex items-center">
                         <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -243,7 +260,7 @@
                         </svg>
                         Chat with Your Documents
                     </h2>
-                    <div id="chatMessages" class="flex-1 overflow-y-auto mb-4 min-h-[400px] px-2 py-4 bg-gray-50 rounded-lg">
+                    <div id="chatMessages" class="flex-1 overflow-y-auto mb-4 bg-gray-50 rounded-lg px-4 py-4" style="height: 600px; max-height: calc(100vh - 300px); scroll-behavior: smooth; overflow-y: scroll;">
                         <!-- Welcome message -->
                         <div class="flex justify-start mb-4 w-full">
                             <div class="message-container assistant-message px-4 py-3">
