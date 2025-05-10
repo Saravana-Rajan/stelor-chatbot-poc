@@ -3,74 +3,283 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chat with Your Files</title>
+    <title>Insight Vault</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --primary-color: #4361ee;
+            --secondary-color: #3f37c9;
+            --accent-color: #4895ef;
+            --light-color: #f8f9fa;
+            --dark-color: #212529;
+            --success-color: #4cc9a0;
+            --danger-color: #e63946;
+            --gray-color: #6c757d;
+        }
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f0f5f9;
+            color: var(--dark-color);
+        }
+        
+        .app-title {
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 700;
+            background: linear-gradient(135deg, #4361ee, #4cc9a0);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
+        }
+        
+        .section-title {
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 600;
+            color: var(--dark-color);
+        }
+        
+        .card {
+            border-radius: 16px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        
+        .input-field {
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            padding: 12px 16px;
+            transition: all 0.2s;
+            font-size: 1rem;
+        }
+        
+        .input-field:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.5);
+            outline: none;
+        }
+        
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: white;
+            border-radius: 12px;
+            padding: 12px 24px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        
+        .btn-primary:hover {
+            background-color: var(--secondary-color);
+            transform: translateY(-2px);
+        }
+        
+        .btn-primary:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.5);
+        }
+        
+        .drop-zone {
+            border: 2px dashed #cbd5e0;
+            border-radius: 16px;
+            padding: 2rem;
+            text-align: center;
+            transition: all 0.2s;
+        }
+        
+        .drop-zone:hover, .drop-zone-active {
+            border-color: var(--primary-color);
+            background-color: rgba(237, 242, 247, 0.5);
+        }
+        
         .viz-container {
             width: 100%;
             min-height: 400px;
             margin: 1rem 0;
             position: relative;
+            border-radius: 12px;
+            overflow: hidden;
         }
+        
         .plotly-graph-div {
             width: 100% !important;
             height: 100% !important;
             min-height: 400px !important;
             position: relative !important;
         }
+        
         .message-container {
             max-width: 90%;
             width: 100%;
+            border-radius: 18px;
+        }
+        
+        .user-message {
+            background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+            color: white;
+            border-top-right-radius: 4px !important;
+        }
+        
+        .assistant-message {
+            background-color: white;
+            border: 1px solid #e2e8f0;
+            border-top-left-radius: 4px !important;
+        }
+        
+        .file-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background-color: white;
+            padding: 0.75rem 1rem;
+            border-radius: 12px;
+            margin-bottom: 0.5rem;
+            border: 1px solid #e2e8f0;
+            transition: all 0.2s;
+        }
+        
+        .file-item:hover {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* For scrollbars */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 10px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a1a1a1;
         }
     </style>
 </head>
-<body class="bg-gray-100">
-    <div class="container mx-auto px-4 py-8">
-        <h1 class="text-3xl font-bold mb-8">Chat with Your Files</h1>
+<body>
+    <div class="container mx-auto px-4 py-10 max-w-6xl">
+        <header class="mb-12 text-center">
+            <h1 class="app-title text-5xl mb-3">Insight Vault</h1>
+            <p class="text-gray-600 text-lg">Unlock the knowledge in your documents with AI-powered conversation</p>
+        </header>
         
-        <!-- File Upload Section -->
-        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
-            <h2 class="text-xl font-semibold mb-4">Upload Files</h2>
-            <form id="uploadForm" class="space-y-4">
-                {% csrf_token %}
-                <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center" 
-                     id="dropZone"
-                     ondrop="handleDrop(event)"
-                     ondragover="handleDragOver(event)"
-                     ondragleave="handleDragLeave(event)">
-                    <input type="file" id="fileInput" class="hidden" multiple accept=".pdf,.csv,.txt,.docx,.xlsx,.jpg,.jpeg,.png">
-                    <label for="fileInput" class="cursor-pointer">
-                        <div class="text-gray-600">
-                            <svg class="mx-auto h-12 w-12 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
-                            </svg>
-                            <p>Drag and drop files here or click to select</p>
-                            <p class="text-sm text-gray-500 mt-2">Supported formats: PDF, CSV, TXT, DOCX, XLSX, Images</p>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- File Upload Section -->
+            <div class="lg:col-span-1">
+                <div class="card bg-white p-6 mb-6">
+                    <h2 class="section-title text-xl mb-4 flex items-center">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                        </svg>
+                        Upload Files
+                    </h2>
+                    <form id="uploadForm" class="space-y-4">
+                        {% csrf_token %}
+                        <div class="drop-zone" 
+                             id="dropZone"
+                             ondrop="handleDrop(event)"
+                             ondragover="handleDragOver(event)"
+                             ondragleave="handleDragLeave(event)">
+                            <input type="file" id="fileInput" class="hidden" multiple accept=".pdf,.csv,.txt,.docx,.xlsx,.jpg,.jpeg,.png">
+                            <label for="fileInput" class="cursor-pointer">
+                                <div class="text-gray-600">
+                                    <svg class="mx-auto h-16 w-16 mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                                    </svg>
+                                    <p class="font-medium">Drag and drop files here or click to select</p>
+                                    <p class="text-sm text-gray-500 mt-2">Supported formats: PDF, CSV, TXT, DOCX, XLSX, Images</p>
+                                </div>
+                            </label>
                         </div>
-                    </label>
+                        <div id="uploadProgress" class="hidden mt-4">
+                            <div class="w-full bg-gray-200 rounded-full h-3">
+                                <div class="bg-gradient-to-r from-blue-500 to-teal-400 h-3 rounded-full" style="width: 0%" id="progressBar"></div>
+                            </div>
+                            <p id="uploadStatus" class="text-sm text-gray-600 mt-2"></p>
+                        </div>
+                    </form>
                 </div>
-                <div id="uploadProgress" class="hidden">
-                    <div class="w-full bg-gray-200 rounded-full h-2.5">
-                        <div class="bg-blue-600 h-2.5 rounded-full" style="width: 0%" id="progressBar"></div>
+                
+                <div class="card bg-white p-6">
+                    <h2 class="section-title text-xl mb-4 flex items-center">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                        Your Files
+                    </h2>
+                    <div id="fileList" class="space-y-2 max-h-96 overflow-y-auto">
+                        <!-- Files will be added here -->
+                        <div class="text-gray-500 text-center py-6">
+                            <svg class="mx-auto h-10 w-10 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/>
+                            </svg>
+                            <p class="mt-2">Upload files to start</p>
+                        </div>
                     </div>
-                    <p id="uploadStatus" class="text-sm text-gray-600 mt-2"></p>
                 </div>
-                <div id="fileList" class="space-y-2"></div>
-            </form>
+            </div>
+            
+            <!-- Chat Section -->
+            <div class="lg:col-span-2">
+                <div class="card bg-white p-6 h-full flex flex-col">
+                    <h2 class="section-title text-xl mb-4 flex items-center">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
+                        </svg>
+                        Chat with Your Documents
+                    </h2>
+                    <div id="chatMessages" class="flex-1 overflow-y-auto mb-4 min-h-[400px] px-2 py-4 bg-gray-50 rounded-lg">
+                        <!-- Welcome message -->
+                        <div class="flex justify-start mb-4 w-full">
+                            <div class="message-container assistant-message px-4 py-3">
+                                <div class="whitespace-pre-wrap">
+                                    Welcome to Insight Vault! 👋
+                                    
+                                    Upload your documents and ask me anything about them. I can help you analyze:
+                                    
+                                    • PDF documents
+                                    • CSV data
+                                    • Excel spreadsheets 
+                                    • Text files
+                                    • Word documents
+                                    • Images
+                                    
+                                    Try asking for summaries, specific information, or data visualizations.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <form id="chatForm" class="flex space-x-3">
+                        <input type="text" id="messageInput" class="input-field flex-1" placeholder="Ask a question about your files...">
+                        <button type="submit" class="btn-primary flex items-center">
+                            <span>Send</span>
+                            <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
+                            </svg>
+                        </button>
+                    </form>
+                </div>
+            </div>
         </div>
         
-        <!-- Chat Section -->
-        <div class="bg-white rounded-lg shadow-md p-6">
-            <h2 class="text-xl font-semibold mb-4">Chat</h2>
-            <div id="chatMessages" class="space-y-4 mb-4 h-96 overflow-y-auto">
-                <!-- Messages will be added here -->
-            </div>
-            <form id="chatForm" class="flex space-x-4">
-                <input type="text" id="messageInput" class="flex-1 rounded-lg border border-gray-300 px-4 py-2 focus:outline-none focus:border-blue-500" placeholder="Ask a question about your files...">
-                <button type="submit" class="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 focus:outline-none">Send</button>
-            </form>
-        </div>
+        <footer class="mt-12 text-center text-gray-500 text-sm">
+            <p>© 2025 Insight Vault - Powered by AI</p>
+        </footer>
     </div>
 
     <script>
@@ -92,17 +301,17 @@
 
         function handleDragOver(e) {
             e.preventDefault();
-            dropZone.classList.add('border-blue-500');
+            dropZone.classList.add('drop-zone-active');
         }
 
         function handleDragLeave(e) {
             e.preventDefault();
-            dropZone.classList.remove('border-blue-500');
+            dropZone.classList.remove('drop-zone-active');
         }
 
         function handleDrop(e) {
             e.preventDefault();
-            dropZone.classList.remove('border-blue-500');
+            dropZone.classList.remove('drop-zone-active');
             const files = e.dataTransfer.files;
             handleFiles(files);
         }
@@ -149,6 +358,12 @@
                     } else {
                         await addDocumentToSession(currentSessionId, data.document_id);
                     }
+                    
+                    // Remove placeholder if it exists
+                    const placeholder = fileList.querySelector('.text-gray-500.text-center');
+                    if (placeholder) {
+                        placeholder.remove();
+                    }
                 } else {
                     uploadStatus.textContent = `Error uploading ${file.name}: ${data.message}`;
                 }
@@ -164,12 +379,26 @@
 
         function addFileToList(filename, documentId) {
             const div = document.createElement('div');
-            div.className = 'flex items-center justify-between bg-gray-50 p-2 rounded';
+            div.className = 'file-item';
             div.innerHTML = `
-                <span class="text-gray-700">${filename}</span>
-                <div class="flex space-x-2">
-                    <span class="text-green-500">✓ Processed</span>
-                    <button class="text-red-500 hover:text-red-700" onclick="removeFile('${documentId}', this)">×</button>
+                <div class="flex items-center">
+                    <svg class="w-5 h-5 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    <span class="text-gray-700 truncate max-w-[150px]">${filename}</span>
+                </div>
+                <div class="flex space-x-2 items-center">
+                    <span class="text-sm text-green-500 flex items-center">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                        </svg>
+                        Ready
+                    </span>
+                    <button class="text-gray-400 hover:text-red-500 transition-colors" onclick="removeFile('${documentId}', this)">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
                 </div>
             `;
             fileList.appendChild(div);
@@ -177,7 +406,19 @@
 
         async function removeFile(documentId, button) {
             // TODO: Add endpoint to remove file
-            button.closest('div.flex').remove();
+            button.closest('.file-item').remove();
+            
+            // Add placeholder if no files left
+            if (fileList.children.length === 0) {
+                fileList.innerHTML = `
+                    <div class="text-gray-500 text-center py-6">
+                        <svg class="mx-auto h-10 w-10 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/>
+                        </svg>
+                        <p class="mt-2">Upload files to start</p>
+                    </div>
+                `;
+            }
         }
 
         // Handle chat messages
@@ -227,7 +468,7 @@
             div.className = `flex ${type === 'user' ? 'justify-end' : 'justify-start'} mb-4 w-full`;
             
             const messageDiv = document.createElement('div');
-            messageDiv.className = `message-container ${type === 'user' ? 'bg-blue-500 text-white' : 'bg-gray-100'} rounded-lg px-4 py-2`;
+            messageDiv.className = `message-container ${type === 'user' ? 'user-message' : 'assistant-message'} px-4 py-3`;
             
             // Handle different response types
             if (typeof content === 'object' && content !== null) {
@@ -336,7 +577,7 @@
             if (sources && sources.length > 0) {
                 const sourcesDiv = document.createElement('div');
                 sourcesDiv.className = 'mt-2 text-xs text-gray-500';
-                sourcesDiv.textContent = `Sources: ${sources.map(s => s.file_type).join(', ')}`;
+                sourcesDiv.innerHTML = `<span class="font-medium">Sources:</span> ${sources.map(s => s.file_type).join(', ')}`;
                 messageDiv.appendChild(sourcesDiv);
                 console.log('Added sources:', sources);
             }
