@@ -430,10 +430,12 @@ def store_chunks(chunks: List[Dict[str, Any]], document_id: str):
             pass
         raise e
 
-def query_chunks(query: str, n_results: int = 5) -> List[Dict[str, Any]]:
+def query_chunks(query: str, n_results: int = 5, document_ids: List[str] = None) -> List[Dict[str, Any]]:
     """Query ChromaDB for relevant chunks."""
     global collection
     print(f"\nDEBUG: Querying chunks with: {query}")
+    if document_ids:
+        print(f"DEBUG: Filtering to document IDs: {document_ids}")
     
     try:
         # Ensure we have a valid collection
@@ -452,11 +454,18 @@ def query_chunks(query: str, n_results: int = 5) -> List[Dict[str, Any]]:
         query_embedding = get_embeddings(query)
         print("DEBUG: Generated query embeddings")
         
-        results = collection.query(
-            query_embeddings=[query_embedding],
-            n_results=n_results,
-            include=['documents', 'metadatas']
-        )
+        # Define query parameters
+        query_params = {
+            "query_embeddings": [query_embedding],
+            "n_results": n_results,
+            "include": ['documents', 'metadatas']
+        }
+        
+        # Add document_id filter if provided
+        if document_ids:
+            query_params["where"] = {"document_id": {"$in": document_ids}}
+        
+        results = collection.query(**query_params)
         
         if not results['documents'] or not results['documents'][0]:
             print("DEBUG: No results found")
@@ -619,7 +628,7 @@ def create_pie_chart(df: pd.DataFrame, query: str) -> go.Figure:
         raise ValueError("No numeric columns found for pie chart")
     
     # Try to find the most relevant numeric column based on the query
-    value_keywords = ['value', 'amount', 'revenue', 'sales', 'units', 'quantity']
+    value_keywords = ['value', 'amount', 'revenue', 'sales', 'units', 'quantity', 'percentage', 'percent', 'share']
     values_col = None
     for keyword in value_keywords:
         matching_cols = [col for col in numeric_cols if keyword.lower() in col.lower()]
@@ -635,6 +644,12 @@ def create_pie_chart(df: pd.DataFrame, query: str) -> go.Figure:
     label_cols = [col for col in df.columns if col not in numeric_cols]
     labels_col = label_cols[0] if label_cols else df.index
     
+    # Determine if values are percentages
+    is_percentage = False
+    sum_values = df[values_col].sum()
+    if 90 <= sum_values <= 110:  # Sum close to 100%
+        is_percentage = True
+    
     # Create the pie chart
     fig = px.pie(
         df,
@@ -644,10 +659,27 @@ def create_pie_chart(df: pd.DataFrame, query: str) -> go.Figure:
     )
     
     # Update layout for better appearance
-    fig.update_traces(textposition='inside', textinfo='percent+label')
+    fig.update_traces(
+        textposition='inside', 
+        textinfo='percent+label',
+        hoverinfo='label+percent+value',
+        hole=0.3,  # Create a donut chart for better visual appearance
+        marker=dict(line=dict(color='#FFFFFF', width=1))
+    )
+    
+    # Add percentage symbol to hover template if needed
+    if is_percentage:
+        fig.update_traces(
+            hovertemplate='%{label}<br>%{percent}<br>Value: %{value}%'
+        )
+    
+    # Improve layout
     fig.update_layout(
         showlegend=True,
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+        margin=dict(l=20, r=20, t=40, b=20),
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)'
     )
     
     return fig
@@ -870,7 +902,7 @@ def extract_visualization_metadata(response_text: str) -> Dict[str, Any]:
         print(f"ERROR extracting visualization metadata: {str(e)}")
         return None
 
-def create_visualization_from_response(response_text: str) -> Optional[Dict[str, Any]]:
+def create_visualization_from_response(response_text: str, query: str) -> Optional[Dict[str, Any]]:
     """Create visualization based on data extracted from Gemini's response."""
     try:
         # Extract data and metadata
@@ -1001,6 +1033,209 @@ def create_visualization_from_response(response_text: str) -> Optional[Dict[str,
         print(f"ERROR creating visualization from response: {str(e)}")
         return None
 
+def create_visualization_from_raw_data(raw_data: Dict, query: str) -> Optional[Dict[str, Any]]:
+    """Create time series visualization directly from raw data without LLM extraction."""
+    try:
+        print(f"DEBUG: Creating time series visualization from raw data")
+        
+        # Create DataFrame from the data
+        data = raw_data.get('data', [])
+        if not data:
+            print("DEBUG: No data found in raw_data")
+            return None
+            
+        columns = raw_data.get('columns', [])
+        sheet_name = raw_data.get('sheet_name', 'Unknown')
+        
+        print(f"DEBUG: Raw data from sheet {sheet_name} with columns: {columns}")
+        df = pd.DataFrame(data)
+        
+        if df.empty:
+            print("DEBUG: Empty DataFrame from raw data")
+            return None
+            
+        print(f"DEBUG: DataFrame shape: {df.shape}")
+        print(f"DEBUG: DataFrame columns: {df.columns}")
+        
+        # Try to find date/time column
+        date_col = None
+        for col in df.columns:
+            # Try to convert to datetime
+            try:
+                df[col] = pd.to_datetime(df[col], errors='coerce')
+                # If at least 50% of values are valid dates, consider it a date column
+                if df[col].notna().mean() >= 0.5:
+                    date_col = col
+                    break
+            except:
+                pass
+                
+        # If no datetime column found, check for month names or year values
+        if not date_col:
+            for col in df.columns:
+                if df[col].dtype == object:
+                    # Check for month names
+                    months = ['january', 'february', 'march', 'april', 'may', 'june', 
+                             'july', 'august', 'september', 'october', 'november', 'december']
+                    values = [str(x).lower().strip() for x in df[col].dropna()]
+                    if values and all(any(month in val for month in months) for val in values):
+                        date_col = col
+                        # Map month names to numbers for sorting
+                        month_map = {m: i+1 for i, m in enumerate(months)}
+                        # Extract month and create sort key
+                        df['_month_num'] = df[col].apply(
+                            lambda x: next((month_map[m] for m in months if m in str(x).lower()), None)
+                        )
+                        # Sort by this key
+                        df = df.sort_values('_month_num')
+                        break
+                        
+                # Check for year values
+                elif df[col].dtype in (int, float):
+                    values = df[col].dropna()
+                    # If values look like years (between 1900 and current year + 10)
+                    current_year = datetime.now().year
+                    if values.min() >= 1900 and values.max() <= current_year + 10:
+                        date_col = col
+                        # Sort by year
+                        df = df.sort_values(col)
+                        break
+        
+        if not date_col:
+            print("DEBUG: No date/time column found in data")
+            # Try using index as x-axis if no date column
+            df = df.sort_index()
+            
+        # Find numeric columns for y-axis
+        numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+        
+        # Filter out any generated helper columns
+        numeric_cols = [col for col in numeric_cols if not col.startswith('_')]
+        
+        if not numeric_cols:
+            print("DEBUG: No numeric columns found for y-axis")
+            return None
+            
+        # Try to find the most relevant numeric column based on the query
+        query_lower = query.lower()
+        value_keywords = ['value', 'amount', 'revenue', 'sales', 'units', 'price', 
+                          'quantity', 'rate', 'percentage', 'volume', 'count']
+        
+        y_col = None
+        for keyword in value_keywords:
+            if keyword in query_lower:
+                matching_cols = [col for col in numeric_cols if keyword.lower() in str(col).lower()]
+                if matching_cols:
+                    y_col = matching_cols[0]
+                    break
+                    
+        # If no specific match, use the first numeric column
+        if not y_col and numeric_cols:
+            y_col = numeric_cols[0]
+            
+        # Create a line chart
+        fig = go.Figure()
+        
+        # Add trace
+        if date_col:
+            fig.add_trace(go.Scatter(
+                x=df[date_col],
+                y=df[y_col],
+                mode='lines+markers',
+                name=y_col,
+                line=dict(width=3),
+                marker=dict(size=8)
+            ))
+            x_title = date_col
+        else:
+            # Use index if no date column
+            fig.add_trace(go.Scatter(
+                x=df.index,
+                y=df[y_col],
+                mode='lines+markers',
+                name=y_col,
+                line=dict(width=3),
+                marker=dict(size=8)
+            ))
+            x_title = "Index"
+            
+        # Create title from query
+        if 'trend' in query_lower:
+            title = f"Trend of {y_col}"
+        elif 'over time' in query_lower:
+            title = f"{y_col} Over Time"
+        else:
+            title = f"{y_col} Time Series"
+            
+        # Add annotations for min and max points
+        y_min = df[y_col].min()
+        y_max = df[y_col].max()
+        y_min_idx = df[y_col].idxmin()
+        y_max_idx = df[y_col].idxmax()
+        
+        if date_col:
+            x_min = df.loc[y_min_idx, date_col]
+            x_max = df.loc[y_max_idx, date_col]
+        else:
+            x_min = y_min_idx
+            x_max = y_max_idx
+            
+        # Add annotations for minimum and maximum
+        fig.add_annotation(
+            x=x_min,
+            y=y_min,
+            text=f"Min: {y_min:.2f}",
+            showarrow=True,
+            arrowhead=1,
+            ax=0,
+            ay=-40
+        )
+        
+        fig.add_annotation(
+            x=x_max,
+            y=y_max,
+            text=f"Max: {y_max:.2f}",
+            showarrow=True,
+            arrowhead=1,
+            ax=0,
+            ay=-40
+        )
+        
+        # Update layout
+        fig.update_layout(
+            title=title,
+            xaxis_title=x_title,
+            yaxis_title=y_col,
+            hovermode='x unified',
+            template='plotly_white',
+            xaxis=dict(
+                showgrid=True,
+                gridwidth=1,
+                gridcolor='LightGray'
+            ),
+            yaxis=dict(
+                showgrid=True,
+                gridwidth=1,
+                gridcolor='LightGray'
+            ),
+            margin=dict(l=20, r=20, t=50, b=20)
+        )
+        
+        # Convert to HTML
+        chart_html = fig.to_html(full_html=False, include_plotlyjs=True)
+        print("DEBUG: Successfully created time series visualization from raw data")
+        
+        return {
+            'type': 'visualization',
+            'content': chart_html
+        }
+        
+    except Exception as e:
+        print(f"DEBUG: Error creating time series visualization from raw data: {str(e)}")
+        import traceback
+        print(f"DEBUG: Traceback: {traceback.format_exc()}")
+        return None
+
 def generate_response(query: str, context_chunks: List[Dict[str, Any]]) -> Dict[str, Any]:
     """Generate response using Gemini with context and create visualizations if applicable."""
     print("\nDEBUG: Starting response generation")
@@ -1010,6 +1245,11 @@ def generate_response(query: str, context_chunks: List[Dict[str, Any]]) -> Dict[
         'text': '',
         'visualization': None
     }
+    
+    # Determine if this is a time series trend question
+    is_trend_question = any(keyword in query.lower() for keyword in 
+                           ['trend', 'over time', 'change', 'timeline', 'historical', 
+                            'pattern', 'evolution', 'progression'])
     
     # Process chunks and extract raw data for Excel files
     processed_chunks = []
@@ -1033,7 +1273,24 @@ def generate_response(query: str, context_chunks: List[Dict[str, Any]]) -> Dict[
         for chunk in processed_chunks
     ])
     
-    prompt = f"""Answer the user's question using the provided context. If the data shows specific values or distributions, include them in your response.
+    # Modify prompt based on question type
+    if is_trend_question:
+        prompt = f"""Answer the user's question using the provided context.
+
+This appears to be a question about trends or patterns over time. Simply respond with:
+"Here's a visualization showing {query}"
+
+A chart will be generated automatically from the data - you don't need to describe all the data points.
+You can briefly mention any key statistics like minimum, maximum, or average values if they're in the data.
+
+Context:
+{context}
+
+Question: {query}
+
+Answer:"""
+    else:
+        prompt = f"""Answer the user's question using the provided context. If the data shows specific values or distributions, include them in your response.
     When the user asks for a visualization, format the relevant data as bullet points with clear "label: value" pairs.
     For example:
     * Category1: 42.5
@@ -1060,10 +1317,28 @@ Answer:"""
     response_data['text'] = response.text
     print("DEBUG: Got response from Gemini")
     
-    # Check if visualization is needed
-    if any(keyword in query.lower() for keyword in ['plot', 'graph', 'chart', 'visualize', 'visualization', 'show', 'display']):
+    # If this is a trend question, use raw data directly for visualization
+    if is_trend_question:
+        print("DEBUG: Time series trend question detected, using raw data for visualization")
+        # Find Excel chunk with raw data
+        for chunk in context_chunks:
+            if chunk['metadata'].get('file_type') == 'xlsx':
+                try:
+                    content_data = json.loads(chunk['content'])
+                    if 'raw_data' in content_data:
+                        print("DEBUG: Found raw data in Excel chunk")
+                        viz = create_visualization_from_raw_data(content_data['raw_data'], query)
+                        if viz:
+                            response_data['visualization'] = viz
+                            print("DEBUG: Created time series visualization from raw data")
+                            break
+                except Exception as e:
+                    print(f"DEBUG: Error processing Excel chunk: {str(e)}")
+                    continue
+    # Otherwise use the original visualization logic
+    elif any(keyword in query.lower() for keyword in ['plot', 'graph', 'chart', 'visualize', 'visualization', 'show', 'display']):
         print("DEBUG: Visualization requested, parsing Gemini response")
-        viz = create_visualization_from_response(response.text)
+        viz = create_visualization_from_response(response.text, query)
         if viz:
             response_data['visualization'] = viz
     

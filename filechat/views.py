@@ -177,15 +177,9 @@ def send_message(request, session_id):
             document_ids = [str(doc.id) for doc in session.documents.all()]
             print(f"DEBUG: Document IDs in session: {document_ids}")
             
-            relevant_chunks = query_chunks(message)
+            # Use direct filtering in the query instead of post-filtering
+            relevant_chunks = query_chunks(message, document_ids=document_ids)
             print(f"DEBUG: Found {len(relevant_chunks)} relevant chunks")
-            
-            # Filter chunks to only include documents in the session
-            relevant_chunks = [
-                chunk for chunk in relevant_chunks
-                if chunk['metadata']['document_id'] in document_ids
-            ]
-            print(f"DEBUG: After filtering, {len(relevant_chunks)} chunks remain")
             
             if not relevant_chunks:
                 return JsonResponse({
