@@ -581,22 +581,12 @@
                         // If all else fails, just insert the content directly
                         vizContainer.innerHTML = content.visualization.content;
                     }
-                    
                     return; // Exit early since we've already added the message to chat
                 }
             } else {
                 // Handle plain text messages (e.g., user messages)
                 messageDiv.textContent = content;
                 console.log('Added plain text content:', content);
-            }
-            
-            // Add sources if available
-            if (sources && sources.length > 0) {
-                const sourcesDiv = document.createElement('div');
-                sourcesDiv.className = 'mt-2 text-xs text-gray-500';
-                sourcesDiv.innerHTML = `<span class="font-medium">Sources:</span> ${sources.map(s => s.file_type).join(', ')}`;
-                messageDiv.appendChild(sourcesDiv);
-                console.log('Added sources:', sources);
             }
             
             div.appendChild(messageDiv);

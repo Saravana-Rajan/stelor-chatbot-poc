@@ -1291,26 +1291,26 @@ Question: {query}
 Answer:"""
     else:
         prompt = f"""Answer the user's question using the provided context. If the data shows specific values or distributions, include them in your response.
-    When the user asks for a visualization, format the relevant data as bullet points with clear "label: value" pairs.
-    For example:
-    * Category1: 42.5
-    * Category2: 78.3
-    
-    Don't say "I can't create a visualization" or "I can't see the data" or anything like that.
-    Always include units where applicable (%, °C, mm, $, etc.).
+        When the user asks for a visualization, format the relevant data as bullet points with clear "label: value" pairs.
+        For example:
+        * Category1: 42.5
+        * Category2: 78.3
+        
+        Don't say "I can't create a visualization" or "I can't see the data" or anything like that.
+        Always include units where applicable (%, °C, mm, $, etc.).
 
-Context:
-{context}
+    Context:
+    {context}
 
-Question: {query}
+    Question: {query}
 
-Instructions:
-1. Provide a clear and direct answer based on the actual data
-2. Include specific numbers and values from the data
-3. If visualization is requested, provide the data in a clear bullet-point format with "label: value" pairs
-4. Always include appropriate units with the values
+    Instructions:
+    1. Provide a clear and direct answer based on the actual data
+    2. Include specific numbers and values from the data
+    3. If visualization is requested, provide the data in a clear bullet-point format with "label: value" pairs
+    4. Always include appropriate units with the values
 
-Answer:"""
+    Answer:"""
 
     print("\nDEBUG: Sending prompt to Gemini: \n", prompt)
     response = model.generate_content(prompt)
