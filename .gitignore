@@ -47,6 +47,7 @@ uploaded_files/
 *.pdf
 *.csv
 *.txt
+!requirements.txt
 *.docx
 *.xlsx
 
