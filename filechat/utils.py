@@ -23,7 +23,7 @@ load_dotenv()
 
 # Initialize Gemini
 genai.configure(api_key=os.getenv('GOOGLE_API_KEY'))
-model = genai.GenerativeModel('gemini-1.5-flash-latest')
+model = genai.GenerativeModel('gemini-2.5-pro')
 
 # Initialize sentence transformer for embeddings
 embedding_model = SentenceTransformer('all-MiniLM-L6-v2')

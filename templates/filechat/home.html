@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Insight Vault</title>
+    <title>Stel Docs AI</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <!-- Google Fonts -->
@@ -12,27 +12,32 @@
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary-color: #4361ee;
-            --secondary-color: #3f37c9;
-            --accent-color: #4895ef;
+            --primary-color: #8B5A96;
+            --secondary-color: #6B3FA0;
+            --accent-color: #A67FB5;
+            --light-purple: #E6DAFE;
+            --medium-purple: #C7B8EA;
+            --dark-purple: #4A2C5A;
             --light-color: #f8f9fa;
-            --dark-color: #212529;
-            --success-color: #4cc9a0;
-            --danger-color: #e63946;
-            --gray-color: #6c757d;
+            --dark-color: #2d2d2d;
+            --success-color: #10b981;
+            --danger-color: #ef4444;
+            --gray-color: #6b7280;
         }
         
         body {
             font-family: 'Poppins', sans-serif;
-            background-color: #f0f5f9;
+            background: linear-gradient(135deg, #f8f9fa 0%, #f3f0ff 50%, #e6dafe 100%);
+            min-height: 100vh;
             color: var(--dark-color);
         }
         
         .app-title {
             font-family: 'Montserrat', sans-serif;
             font-weight: 700;
-            background: linear-gradient(135deg, #4361ee, #4cc9a0);
+            background: linear-gradient(135deg, var(--secondary-color), var(--primary-color), var(--accent-color));
             -webkit-background-clip: text;
+            background-clip: text;
             -webkit-text-fill-color: transparent;
             letter-spacing: -0.5px;
             padding: 0 0 10px 0;
@@ -47,13 +52,15 @@
         
         .card {
             border-radius: 16px;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            box-shadow: 0 10px 15px -3px rgba(139, 90, 150, 0.1), 0 4px 6px -2px rgba(107, 63, 160, 0.05);
             transition: transform 0.2s, box-shadow 0.2s;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
         
         .card:hover {
             transform: translateY(-5px);
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            box-shadow: 0 20px 25px -5px rgba(139, 90, 150, 0.15), 0 10px 10px -5px rgba(107, 63, 160, 0.1);
         }
         
         .input-field {
@@ -66,7 +73,7 @@
         
         .input-field:focus {
             border-color: var(--primary-color);
-            box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.5);
+            box-shadow: 0 0 0 3px rgba(139, 90, 150, 0.3);
             outline: none;
         }
         
@@ -86,20 +93,21 @@
         
         .btn-primary:focus {
             outline: none;
-            box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.5);
+            box-shadow: 0 0 0 3px rgba(139, 90, 150, 0.3);
         }
         
         .drop-zone {
-            border: 2px dashed #cbd5e0;
+            border: 2px dashed var(--medium-purple);
             border-radius: 16px;
             padding: 2rem;
             text-align: center;
             transition: all 0.2s;
+            background: rgba(255, 255, 255, 0.5);
         }
         
         .drop-zone:hover, .drop-zone-active {
             border-color: var(--primary-color);
-            background-color: rgba(237, 242, 247, 0.5);
+            background: linear-gradient(135deg, rgba(230, 218, 254, 0.3), rgba(199, 184, 234, 0.3));
         }
         
         .viz-container {
@@ -109,6 +117,181 @@
             position: relative;
             border-radius: 12px;
             overflow: hidden;
+        }
+        
+        /* Toggle Switch Styles */
+        #multiDocMode:checked + div .toggle-dot {
+            transform: translateX(100%);
+        }
+        
+        #multiDocMode:checked + div {
+            background-color: var(--primary-color);
+        }
+        
+        .document-item {
+            display: flex;
+            align-items: center;
+            justify-content: between;
+            padding: 0.75rem;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        
+        .document-item:hover {
+            border-color: var(--primary-color);
+            background: linear-gradient(135deg, rgba(230, 218, 254, 0.3), rgba(255, 255, 255, 0.8));
+        }
+        
+        .document-item.active {
+            border-color: var(--primary-color);
+            background: linear-gradient(135deg, var(--light-purple), rgba(255, 255, 255, 0.9));
+        }
+        
+        .document-item.selected {
+            border-color: var(--secondary-color);
+            background: linear-gradient(135deg, var(--medium-purple), rgba(255, 255, 255, 0.8));
+        }
+        
+        .chat-mode-single {
+            background: linear-gradient(135deg, var(--light-purple), rgba(255, 255, 255, 0.9));
+            color: var(--dark-purple);
+        }
+        
+        .chat-mode-multi {
+            background: linear-gradient(135deg, var(--medium-purple), rgba(255, 255, 255, 0.8));
+            color: var(--dark-purple);
+        }
+        
+        /* Chat History Styles */
+        .chat-history-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.75rem;
+            border-radius: 8px;
+            transition: all 0.2s;
+            cursor: pointer;
+            border: 1px solid transparent;
+        }
+        
+        .chat-history-item:hover {
+            background: linear-gradient(135deg, rgba(230, 218, 254, 0.2), rgba(255, 255, 255, 0.8));
+            border-color: var(--medium-purple);
+        }
+        
+        .chat-history-item.active {
+            background: linear-gradient(135deg, var(--light-purple), rgba(255, 255, 255, 0.9));
+            border-color: var(--primary-color);
+        }
+        
+        .chat-history-item.active .chat-title {
+            color: var(--dark-purple);
+            font-weight: 600;
+        }
+        
+        .chat-title {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #374151;
+            line-height: 1.2;
+            margin-bottom: 0.25rem;
+        }
+        
+        .chat-meta {
+            font-size: 0.75rem;
+            color: #6b7280;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .chat-actions {
+            display: flex;
+            gap: 0.25rem;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        
+        .chat-history-item:hover .chat-actions {
+            opacity: 1;
+        }
+        
+        .chat-action-btn {
+            width: 1.5rem;
+            height: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            transition: all 0.2s;
+            color: #6b7280;
+        }
+        
+        .chat-action-btn:hover {
+            background-color: #e5e7eb;
+            color: #374151;
+        }
+        
+        .chat-action-btn.delete:hover {
+            background-color: #fecaca;
+            color: #dc2626;
+        }
+        
+        /* AI Thinking Animation */
+        .ai-thinking {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+        
+        .robot-thinking {
+            display: flex;
+            align-items: center;
+            background: linear-gradient(135deg, var(--secondary-color) 0%, var(--primary-color) 100%);
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 2rem;
+            box-shadow: 0 4px 15px rgba(139, 90, 150, 0.4);
+        }
+        
+        .robot-icon {
+            width: 2rem;
+            height: 2rem;
+            margin-right: 0.75rem;
+            animation: robotPulse 2s ease-in-out infinite;
+        }
+        
+        .thinking-dots {
+            display: flex;
+            margin-left: 0.5rem;
+        }
+        
+        .thinking-dot {
+            width: 8px;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 50%;
+            margin: 0 2px;
+            animation: thinkingDots 1.4s ease-in-out infinite;
+        }
+        
+        .thinking-dot:nth-child(1) { animation-delay: 0s; }
+        .thinking-dot:nth-child(2) { animation-delay: 0.2s; }
+        .thinking-dot:nth-child(3) { animation-delay: 0.4s; }
+        
+        @keyframes robotPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        
+        @keyframes thinkingDots {
+            0%, 20% { transform: scale(0.8); opacity: 0.5; }
+            50% { transform: scale(1.2); opacity: 1; }
+            80%, 100% { transform: scale(0.8); opacity: 0.5; }
         }
         
         .plotly-graph-div {
@@ -128,12 +311,14 @@
             background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
             color: white;
             border-top-right-radius: 4px !important;
+            box-shadow: 0 4px 12px rgba(139, 90, 150, 0.3);
         }
         
         .assistant-message {
-            background-color: white;
-            border: 1px solid #e2e8f0;
+            background: rgba(255, 255, 255, 0.95);
+            border: 1px solid var(--light-purple);
             border-top-left-radius: 4px !important;
+            backdrop-filter: blur(10px);
         }
         
         .file-item {
@@ -191,62 +376,132 @@
 <body>
     <div class="container mx-auto px-4 py-10 max-w-[95%]">
         <header class="mb-12 text-center">
-            <h1 class="app-title text-5xl mb-3">Insight Vault</h1>
-            <p class="text-gray-600 text-lg">Unlock the knowledge in your documents with AI-powered conversation</p>
+            <h1 class="app-title text-5xl mb-3">Stel Docs AI</h1>
+            <p class="text-gray-700 text-lg font-medium">Unlock the knowledge in your documents with AI-powered conversation</p>
         </header>
         
         <div class="grid grid-cols-1 lg:grid-cols-7 gap-6">
-            <!-- File Upload Section - Narrower -->
+            <!-- Document Library Section -->
             <div class="lg:col-span-2">
-                <div class="card bg-white p-6 mb-6">
-                    <h2 class="section-title text-xl mb-4 flex items-center">
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
-                        </svg>
-                        Upload Files
-                    </h2>
-                    <form id="uploadForm" class="space-y-4">
-                        {% csrf_token %}
-                        <div class="drop-zone" 
-                             id="dropZone"
-                             ondrop="handleDrop(event)"
-                             ondragover="handleDragOver(event)"
-                             ondragleave="handleDragLeave(event)">
-                            <input type="file" id="fileInput" class="hidden" multiple accept=".pdf,.csv,.txt,.docx,.xlsx,.jpg,.jpeg,.png">
-                            <label for="fileInput" class="cursor-pointer">
-                                <div class="text-gray-600">
-                                    <svg class="mx-auto h-16 w-16 mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
-                                    </svg>
-                                    <p class="font-medium">Drag and drop files here or click to select</p>
-                                    <p class="text-sm text-gray-500 mt-2">Supported formats: PDF, CSV, TXT, DOCX, XLSX </p>
-                                </div>
-                            </label>
+                <!-- Chat History Section -->
+                <div class="card bg-white p-4 mb-4">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="font-semibold text-gray-900 flex items-center">
+                            <svg class="w-4 h-4 mr-2 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                            </svg>
+                            Chat History
+                        </h3>
+                        <button id="newChatBtn" class="text-xs bg-purple-500 text-white px-3 py-1 rounded hover:bg-purple-600">
+                            <svg class="w-3 h-3 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                            </svg>
+                            New
+                        </button>
+                    </div>
+                    
+                    <!-- Chat Sessions List -->
+                    <div id="chatHistoryList" class="space-y-2 max-h-40 overflow-y-auto">
+                        <div class="text-gray-500 text-center py-4 text-sm" id="emptyChatHistory">
+                            <svg class="mx-auto h-8 w-8 text-gray-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                            </svg>
+                            No chat history yet
                         </div>
-                        <div id="uploadProgress" class="hidden mt-4">
-                            <div class="w-full bg-gray-200 rounded-full h-3">
-                                <div class="bg-gradient-to-r from-blue-500 to-teal-400 h-3 rounded-full" style="width: 0%" id="progressBar"></div>
-                            </div>
-                            <p id="uploadStatus" class="text-sm text-gray-600 mt-2"></p>
-                        </div>
-                    </form>
+                    </div>
+                </div>
+
+                <!-- Active Chat Info -->
+                <div class="card bg-white p-4 mb-4">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="font-semibold text-gray-900">Active Chat</h3>
+                        <span class="text-xs px-2 py-1 rounded-full" id="chatModeIndicator">Single Doc</span>
+                    </div>
+                    <div id="activeChatInfo" class="text-sm text-gray-600">
+                        Upload a document to start chatting
+                    </div>
+                    
+                    <!-- Chat Mode Controls -->
+                    <div class="flex gap-2 mt-3">
+                        <button id="clearChatBtn" class="flex-1 text-xs bg-gray-500 text-white px-3 py-2 rounded hover:bg-gray-600">
+                            Clear Chat
+                        </button>
+                        <button id="deleteChatBtn" class="text-xs bg-red-500 text-white px-3 py-2 rounded hover:bg-red-600">
+                            Delete
+                        </button>
+                    </div>
                 </div>
                 
+                <!-- Document Library -->
+                <div class="card bg-white p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="section-title text-xl flex items-center">
+                            <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+                            </svg>
+                            Document Library
+                        </h2>
+                        <div class="flex items-center space-x-2">
+                            <button id="selectAllDocsBtn" class="text-xs text-blue-600 hover:text-blue-800">All</button>
+                            <button id="selectNoneDocsBtn" class="text-xs text-gray-600 hover:text-gray-800">None</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Document List -->
+                    <div id="documentLibrary" class="space-y-2 max-h-60 overflow-y-auto">
+                        <div class="text-gray-500 text-center py-6" id="emptyLibraryMessage">
+                            <svg class="mx-auto h-10 w-10 text-gray-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                            </svg>
+                            <p class="text-sm">Upload documents to start</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Multi-document mode toggle -->
+                    <div class="mt-4 pt-4 border-t border-gray-200">
+                        <label class="flex items-center cursor-pointer">
+                            <input type="checkbox" id="multiDocMode" class="sr-only">
+                            <div class="relative">
+                                <div class="w-10 h-6 bg-gray-200 rounded-full shadow-inner"></div>
+                                <div class="toggle-dot absolute w-4 h-4 bg-white rounded-full shadow left-1 top-1 transition"></div>
+                            </div>
+                            <span class="ml-3 text-sm text-gray-700">Multi-Document Chat</span>
+                        </label>
+                        <p class="text-xs text-gray-500 mt-1">Chat with multiple documents simultaneously</p>
+                    </div>
+                </div>
+                
+                <!-- File Upload -->
                 <div class="card bg-white p-6">
                     <h2 class="section-title text-xl mb-4 flex items-center">
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        <svg class="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
                         </svg>
-                        Your Files
+                        Upload Documents
                     </h2>
-                    <div id="fileList" class="space-y-2 max-h-60 overflow-y-auto pr-1">
-                        <!-- Files will be added here -->
-                        <div class="text-gray-500 text-center py-6">
-                            <svg class="mx-auto h-10 w-10 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/>
+                    <form id="uploadForm" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <div id="dropZone" class="drop-zone" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)">
+                            <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                                <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                             </svg>
-                            <p class="mt-2">Upload files to start</p>
+                            <div class="mt-4">
+                                <label for="fileInput" class="cursor-pointer">
+                                    <span class="btn-primary px-6 py-3 text-base">Choose files</span>
+                                    <input id="fileInput" name="file" type="file" class="sr-only" multiple accept=".pdf,.csv,.txt,.docx,.xlsx,.jpg,.jpeg,.png,.gif">
+                                </label>
+                                <p class="mt-2 text-sm text-gray-600">or drag and drop</p>
+                            </div>
+                            <p class="mt-2 text-xs text-gray-500">PDF, Word, Excel, CSV, Text, Images</p>
                         </div>
+                    </form>
+                    
+                    <!-- Upload Progress -->
+                    <div id="uploadProgress" class="hidden mt-4">
+                        <div class="bg-gray-200 rounded-full h-2">
+                            <div id="progressBar" class="bg-green-500 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                        </div>
+                        <p id="uploadStatus" class="text-sm text-gray-600 mt-2">Uploading...</p>
                     </div>
                 </div>
             </div>
@@ -265,7 +520,7 @@
                         <div class="flex justify-start mb-4 w-full">
                             <div class="message-container assistant-message px-4 py-3">
                                 <div class="whitespace-pre-wrap">
-                                    Welcome to Insight Vault! 👋
+                                    Welcome to Stel Docs AI! 👋
                                     
                                     Upload your documents and ask me anything about them. I can help you analyze:
                                     
@@ -295,13 +550,12 @@
         </div>
         
         <footer class="mt-12 text-center text-gray-500 text-sm">
-            <p>© 2025 Insight Vault - Powered by AI</p>
+            <p>© 2025 Stel Docs AI - Powered by AI</p>
         </footer>
     </div>
 
     <script>
         let currentSessionId = null;
-        const fileList = document.getElementById('fileList');
         const chatMessages = document.getElementById('chatMessages');
         const messageInput = document.getElementById('messageInput');
         const chatForm = document.getElementById('chatForm');
@@ -312,6 +566,404 @@
         const progressBar = document.getElementById('progressBar');
         const uploadStatus = document.getElementById('uploadStatus');
         const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        
+        // Document management elements
+        const documentLibrary = document.getElementById('documentLibrary');
+        const emptyLibraryMessage = document.getElementById('emptyLibraryMessage');
+        const multiDocMode = document.getElementById('multiDocMode');
+        const chatModeIndicator = document.getElementById('chatModeIndicator');
+        const activeChatInfo = document.getElementById('activeChatInfo');
+        const newChatBtn = document.getElementById('newChatBtn');
+        const clearChatBtn = document.getElementById('clearChatBtn');
+        const deleteChatBtn = document.getElementById('deleteChatBtn');
+        const selectAllDocsBtn = document.getElementById('selectAllDocsBtn');
+        const selectNoneDocsBtn = document.getElementById('selectNoneDocsBtn');
+        
+        // Chat history elements
+        const chatHistoryList = document.getElementById('chatHistoryList');
+        const emptyChatHistory = document.getElementById('emptyChatHistory');
+        
+        // State management
+        let allDocuments = []; // All uploaded documents
+        let selectedDocuments = []; // Currently selected documents for chat
+        let isMultiDocMode = false;
+        let allChatSessions = []; // All chat sessions
+        
+        // Chat history management functions
+        async function loadAllChatSessions() {
+            try {
+                const response = await fetch('/chat/sessions/', {
+                    method: 'GET',
+                    headers: {
+                        'X-CSRFToken': csrfToken
+                    },
+                    credentials: 'include'
+                });
+
+                const data = await response.json();
+                if (data.status === 'success') {
+                    allChatSessions = data.sessions;
+                    renderChatHistory();
+                }
+            } catch (error) {
+                console.error('Error loading chat sessions:', error);
+            }
+        }
+        
+        function renderChatHistory() {
+            if (allChatSessions.length === 0) {
+                emptyChatHistory.classList.remove('hidden');
+                return;
+            }
+            
+            emptyChatHistory.classList.add('hidden');
+            
+            const chatHistoryHtml = allChatSessions.map(session => {
+                const isActive = session.id === currentSessionId;
+                const timeAgo = getTimeAgo(new Date(session.created_at));
+                
+                // Create a preview from the latest message or title
+                let preview = session.latest_message || 'New chat';
+                if (preview.length > 50) {
+                    preview = preview.substring(0, 50) + '...';
+                }
+                
+                return `
+                    <div class="chat-history-item ${isActive ? 'active' : ''}" 
+                         data-session-id="${session.id}" onclick="switchToSession('${session.id}')">
+                        <div class="flex-1 min-w-0">
+                            <div class="chat-title">${session.title}</div>
+                            <div class="chat-meta">
+                                <span>${timeAgo}</span>
+                                ${session.message_count > 0 ? `<span>•</span><span>${session.message_count} messages</span>` : ''}
+                            </div>
+                            ${preview !== 'New chat' ? `<div class="text-xs text-gray-500 mt-1 truncate">${preview}</div>` : ''}
+                        </div>
+                        <div class="chat-actions">
+                            <button class="chat-action-btn delete" onclick="event.stopPropagation(); deleteSession('${session.id}')" title="Delete chat">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            chatHistoryList.innerHTML = chatHistoryHtml;
+        }
+        
+        async function switchToSession(sessionId) {
+            try {
+                // Load session details
+                const session = allChatSessions.find(s => s.id === sessionId);
+                if (!session) return;
+                
+                currentSessionId = sessionId;
+                
+                // Update documents selection based on session
+                selectedDocuments = session.documents.map(doc => ({
+                    id: doc.id,
+                    filename: doc.filename,
+                    file_type: doc.file_type,
+                    session_id: sessionId
+                }));
+                
+                // Add to documents library if not already there
+                session.documents.forEach(doc => {
+                    const existing = allDocuments.find(d => d.id === doc.id);
+                    if (!existing) {
+                        allDocuments.push({
+                            id: doc.id,
+                            filename: doc.filename,
+                            file_type: doc.file_type,
+                            session_id: sessionId
+                        });
+                    }
+                });
+                
+                // Update multi-doc mode
+                isMultiDocMode = selectedDocuments.length > 1;
+                multiDocMode.checked = isMultiDocMode;
+                
+                // Update UI
+                updateChatUI();
+                renderDocumentLibrary();
+                renderChatHistory(); // Refresh to show active state
+                saveDocumentsToStorage();
+                
+                // Load chat history
+                await loadChatHistoryForSession();
+                
+            } catch (error) {
+                console.error('Error switching to session:', error);
+            }
+        }
+        
+        async function createNewChat() {
+            try {
+                // Clear current selection
+                selectedDocuments = [];
+                currentSessionId = null;
+                isMultiDocMode = false;
+                multiDocMode.checked = false;
+                
+                // Update UI
+                updateChatUI();
+                renderDocumentLibrary();
+                renderChatHistory();
+                showWelcomeMessage();
+                saveDocumentsToStorage();
+                
+                // Refresh chat history
+                await loadAllChatSessions();
+                
+            } catch (error) {
+                console.error('Error creating new chat:', error);
+            }
+        }
+        
+        async function deleteSession(sessionId) {
+            if (!confirm('Are you sure you want to delete this chat? This action cannot be undone.')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/chat/session/${sessionId}/delete/`, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRFToken': csrfToken
+                    },
+                    credentials: 'include'
+                });
+
+                const data = await response.json();
+                if (data.status === 'success') {
+                    // Remove from local state
+                    allChatSessions = allChatSessions.filter(s => s.id !== sessionId);
+                    
+                    // If this was the current session, clear it
+                    if (currentSessionId === sessionId) {
+                        currentSessionId = null;
+                        selectedDocuments = [];
+                        clearChatMessages();
+                        showWelcomeMessage();
+                    }
+                    
+                    // Update UI
+                    renderChatHistory();
+                    updateChatUI();
+                    saveDocumentsToStorage();
+                } else {
+                    alert('Error deleting chat: ' + data.message);
+                }
+            } catch (error) {
+                console.error('Error deleting session:', error);
+                alert('Error deleting chat');
+            }
+        }
+        
+        function getTimeAgo(date) {
+            const now = new Date();
+            const diffMs = now - date;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMins / 60);
+            const diffDays = Math.floor(diffHours / 24);
+            
+            if (diffMins < 1) return 'Just now';
+            if (diffMins < 60) return `${diffMins}m ago`;
+            if (diffHours < 24) return `${diffHours}h ago`;
+            if (diffDays < 7) return `${diffDays}d ago`;
+            return date.toLocaleDateString();
+        }
+
+        // Document management functions
+        function saveDocumentsToStorage() {
+            localStorage.setItem('stelDocsAI_documents', JSON.stringify(allDocuments));
+            localStorage.setItem('stelDocsAI_selectedDocs', JSON.stringify(selectedDocuments));
+            localStorage.setItem('stelDocsAI_currentSession', currentSessionId);
+            localStorage.setItem('stelDocsAI_multiDocMode', isMultiDocMode);
+        }
+        
+        function loadDocumentsFromStorage() {
+            const docs = localStorage.getItem('stelDocsAI_documents');
+            const selected = localStorage.getItem('stelDocsAI_selectedDocs');
+            const session = localStorage.getItem('stelDocsAI_currentSession');
+            const multiMode = localStorage.getItem('stelDocsAI_multiDocMode');
+            
+            if (docs) allDocuments = JSON.parse(docs);
+            if (selected) selectedDocuments = JSON.parse(selected);
+            if (session) currentSessionId = session;
+            if (multiMode) isMultiDocMode = multiMode === 'true';
+        }
+        
+        function addDocumentToLibrary(doc) {
+            // Check if document already exists
+            const existingIndex = allDocuments.findIndex(d => d.id === doc.id);
+            if (existingIndex >= 0) {
+                allDocuments[existingIndex] = doc; // Update existing
+            } else {
+                allDocuments.push(doc); // Add new
+            }
+            
+            renderDocumentLibrary();
+            saveDocumentsToStorage();
+        }
+        
+        async function selectDocument(docId, forceMode = null) {
+            const doc = allDocuments.find(d => d.id === docId);
+            if (!doc) return;
+            
+            if (forceMode === 'single' || (!isMultiDocMode && forceMode !== 'multi')) {
+                // Single document mode - replace selection
+                selectedDocuments = [doc];
+                isMultiDocMode = false;
+                multiDocMode.checked = false;
+            } else {
+                // Multi document mode - toggle selection
+                const existingIndex = selectedDocuments.findIndex(d => d.id === docId);
+                if (existingIndex >= 0) {
+                    selectedDocuments.splice(existingIndex, 1); // Remove
+                } else {
+                    selectedDocuments.push(doc); // Add
+                }
+                isMultiDocMode = true;
+                multiDocMode.checked = true;
+            }
+            
+            updateChatUI();
+            renderDocumentLibrary();
+            saveDocumentsToStorage();
+            
+            // Load chat history for the new selection
+            await loadChatHistoryForSession();
+        }
+        
+        function updateChatUI() {
+            if (selectedDocuments.length === 0) {
+                activeChatInfo.textContent = 'No documents selected';
+                chatModeIndicator.textContent = 'No Chat';
+                chatModeIndicator.className = 'text-xs px-2 py-1 rounded-full bg-gray-200 text-gray-600';
+                showWelcomeMessage();
+                return;
+            }
+            
+            if (selectedDocuments.length === 1) {
+                activeChatInfo.textContent = `Chatting with: ${selectedDocuments[0].filename}`;
+                chatModeIndicator.textContent = 'Single Doc';
+                chatModeIndicator.className = 'text-xs px-2 py-1 rounded-full chat-mode-single';
+            } else {
+                activeChatInfo.textContent = `Chatting with ${selectedDocuments.length} documents`;
+                chatModeIndicator.textContent = 'Multi Doc';
+                chatModeIndicator.className = 'text-xs px-2 py-1 rounded-full chat-mode-multi';
+            }
+            
+            // Show selected documents info if chat is empty
+            if (chatMessages.children.length === 0 || chatMessages.querySelector('.message-container') === null) {
+                showSelectedDocumentsInfo();
+            }
+        }
+        
+        function renderDocumentLibrary() {
+            if (allDocuments.length === 0) {
+                emptyLibraryMessage.classList.remove('hidden');
+                return;
+            }
+            
+            emptyLibraryMessage.classList.add('hidden');
+            
+            const documentsHtml = allDocuments.map(doc => {
+                const isSelected = selectedDocuments.some(d => d.id === doc.id);
+                const isActive = selectedDocuments.length === 1 && selectedDocuments[0].id === doc.id;
+                
+                return `
+                    <div class="document-item ${isActive ? 'active' : ''} ${isSelected ? 'selected' : ''}" 
+                         data-doc-id="${doc.id}" onclick="selectDocument('${doc.id}')">
+                        <div class="flex items-center flex-1">
+                            <input type="checkbox" ${isSelected ? 'checked' : ''} 
+                                   class="mr-3 text-blue-600" onclick="event.stopPropagation(); toggleDocumentSelection('${doc.id}')">
+                            <div class="flex items-center flex-1">
+                                <svg class="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                </svg>
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-sm font-medium text-gray-900 truncate">${doc.filename}</p>
+                                    <p class="text-xs text-gray-500">${doc.file_type.toUpperCase()}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <button class="text-gray-400 hover:text-red-500 ml-2" onclick="event.stopPropagation(); removeDocument('${doc.id}')" title="Remove document">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+                `;
+            }).join('');
+            
+            documentLibrary.innerHTML = documentsHtml;
+        }
+        
+        function toggleDocumentSelection(docId) {
+            selectDocument(docId, 'multi');
+        }
+        
+        function removeDocument(docId) {
+            allDocuments = allDocuments.filter(d => d.id !== docId);
+            selectedDocuments = selectedDocuments.filter(d => d.id !== docId);
+            updateChatUI();
+            renderDocumentLibrary();
+            saveDocumentsToStorage();
+        }
+        
+        function getFileType(filename) {
+            const ext = filename.split('.').pop().toLowerCase();
+            const typeMap = {
+                'pdf': 'pdf',
+                'docx': 'docx', 'doc': 'docx',
+                'xlsx': 'xlsx', 'xls': 'xlsx',
+                'csv': 'csv',
+                'txt': 'txt',
+                'png': 'image', 'jpg': 'image', 'jpeg': 'image', 'gif': 'image'
+            };
+            return typeMap[ext] || 'unknown';
+        }
+        
+        async function ensureSessionForSelection() {
+            if (selectedDocuments.length === 1) {
+                // Single document - use its session
+                currentSessionId = selectedDocuments[0].session_id;
+            } else if (selectedDocuments.length > 1) {
+                // Multi-document - create new session
+                const docIds = selectedDocuments.map(d => d.id);
+                const title = `Multi-Doc Chat (${selectedDocuments.length} docs)`;
+                
+                try {
+                    const response = await fetch('/chat/create/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrfToken
+                        },
+                        body: JSON.stringify({ 
+                            title: title,
+                            document_ids: docIds
+                        }),
+                        credentials: 'include'
+                    });
+
+                    const data = await response.json();
+                    if (data.status === 'success') {
+                        currentSessionId = data.session_id;
+                        saveDocumentsToStorage();
+                        // Refresh chat history to show the new session
+                        await loadAllChatSessions();
+                    }
+                } catch (error) {
+                    console.error('Error creating multi-doc session:', error);
+                }
+            }
+        }
 
         // Handle file input change
         fileInput.addEventListener('change', handleFileSelect);
@@ -367,20 +1019,27 @@
                 if (data.status === 'success') {
                     progressBar.style.width = '100%';
                     uploadStatus.textContent = `${file.name} uploaded and processed successfully!`;
-                    addFileToList(file.name, data.document_id);
                     
-                    // Create or update chat session with the new file
-                    if (!currentSessionId) {
-                        await createChatSession([data.document_id]);
-                    } else {
-                        await addDocumentToSession(currentSessionId, data.document_id);
-                    }
+                    // Add document to library
+                    const doc = {
+                        id: data.document_id,
+                        filename: file.name,
+                        file_type: getFileType(file.name),
+                        session_id: data.session_id,
+                        uploaded_at: new Date().toISOString()
+                    };
                     
-                    // Remove placeholder if it exists
-                    const placeholder = fileList.querySelector('.text-gray-500.text-center');
-                    if (placeholder) {
-                        placeholder.remove();
-                    }
+                    addDocumentToLibrary(doc);
+                    
+                    // Auto-select the new document and start chatting
+                    selectDocument(doc.id, 'single');
+                    currentSessionId = data.session_id;
+                    
+                    saveDocumentsToStorage();
+                    
+                    // Refresh chat history to show the new session
+                    await loadAllChatSessions();
+                    
                 } else {
                     uploadStatus.textContent = `Error uploading ${file.name}: ${data.message}`;
                 }
@@ -394,48 +1053,143 @@
             }, 3000);
         }
 
-        function addFileToList(filename, documentId) {
-            const div = document.createElement('div');
-            div.className = 'file-item';
-            div.innerHTML = `
-                <div class="flex items-center">
-                    <svg class="w-5 h-5 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                    </svg>
-                    <span class="text-gray-700 truncate max-w-[150px]">${filename}</span>
-                </div>
-                <div class="flex space-x-2 items-center">
-                    <span class="text-sm text-green-500 flex items-center">
-                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                        </svg>
-                        Ready
-                    </span>
-                    <button class="text-gray-400 hover:text-red-500 transition-colors" onclick="removeFile('${documentId}', this)">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                        </svg>
-                    </button>
-                </div>
-            `;
-            fileList.appendChild(div);
-        }
-
-        async function removeFile(documentId, button) {
-            // TODO: Add endpoint to remove file
-            button.closest('.file-item').remove();
+        // Initialize the application
+        async function initializeApp() {
+            loadDocumentsFromStorage();
+            multiDocMode.checked = isMultiDocMode;
+            renderDocumentLibrary();
+            updateChatUI();
             
-            // Add placeholder if no files left
-            if (fileList.children.length === 0) {
-                fileList.innerHTML = `
-                    <div class="text-gray-500 text-center py-6">
-                        <svg class="mx-auto h-10 w-10 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/>
-                        </svg>
-                        <p class="mt-2">Upload files to start</p>
+            // Load chat history
+            await loadAllChatSessions();
+            
+            if (selectedDocuments.length === 0) {
+                showWelcomeMessage();
+            } else {
+                // If we have selected documents, try to load their chat history
+                await loadChatHistoryForSession();
+            }
+        }
+        
+        // Load chat history for current session
+        async function loadChatHistoryForSession() {
+            if (!currentSessionId) return;
+            
+            try {
+                const response = await fetch(`/chat/${currentSessionId}/history/`, {
+                    method: 'GET',
+                    headers: {
+                        'X-CSRFToken': csrfToken
+                    },
+                    credentials: 'include'
+                });
+
+                const data = await response.json();
+                if (data.status === 'success' && data.messages.length > 0) {
+                    clearChatMessages();
+                    
+                    // Load chat history
+                    for (const message of data.messages) {
+                        if (message.type === 'user') {
+                            addMessageToChat('user', message.content);
+                        } else {
+                            // For assistant messages, recreate the response format
+                            const response = { text: message.content };
+                            addMessageToChat('assistant', response, message.sources);
+                        }
+                    }
+                } else if (selectedDocuments.length > 0) {
+                    // Show selected documents info if no history
+                    showSelectedDocumentsInfo();
+                }
+            } catch (error) {
+                console.error('Error loading chat history:', error);
+                if (selectedDocuments.length > 0) {
+                    showSelectedDocumentsInfo();
+                }
+            }
+        }
+        
+        // Show info about currently selected documents
+        function showSelectedDocumentsInfo() {
+            clearChatMessages();
+            const welcomeDiv = document.createElement('div');
+            welcomeDiv.className = 'flex justify-center mb-4 w-full';
+            
+            let documentsInfo = '';
+            if (selectedDocuments.length === 1) {
+                documentsInfo = `
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                        <div class="flex items-center">
+                            <svg class="w-8 h-8 text-blue-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                            </svg>
+                            <div>
+                                <h4 class="font-semibold text-blue-900">Currently chatting with:</h4>
+                                <p class="text-blue-700">${selectedDocuments[0].filename}</p>
+                                <p class="text-sm text-blue-600">${selectedDocuments[0].file_type.toUpperCase()} document</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                const docList = selectedDocuments.map(doc => `<li class="text-green-700">📄 ${doc.filename}</li>`).join('');
+                documentsInfo = `
+                    <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+                        <div class="flex items-start">
+                            <svg class="w-8 h-8 text-green-600 mr-3 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+                            </svg>
+                            <div>
+                                <h4 class="font-semibold text-green-900">Multi-Document Chat Active</h4>
+                                <p class="text-green-700 mb-2">Chatting with ${selectedDocuments.length} documents:</p>
+                                <ul class="text-sm space-y-1">${docList}</ul>
+                            </div>
+                        </div>
                     </div>
                 `;
             }
+            
+            welcomeDiv.innerHTML = `
+                <div class="message-container assistant-message px-6 py-4 max-w-2xl">
+                    ${documentsInfo}
+                    <div class="text-center">
+                        <h3 class="text-lg font-medium text-gray-900 mb-2">Ready to Chat!</h3>
+                        <p class="text-gray-600 mb-4">Ask me anything about your selected document${selectedDocuments.length > 1 ? 's' : ''}. I can help you:</p>
+                        <div class="text-sm text-gray-500 space-y-1">
+                            <p>💬 Answer questions about the content</p>
+                            <p>📊 Create summaries and analysis</p>
+                            <p>🔍 Find specific information</p>
+                            <p>📈 Generate data visualizations</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            chatMessages.appendChild(welcomeDiv);
+        }
+        
+        function showWelcomeMessage() {
+            clearChatMessages();
+            const welcomeDiv = document.createElement('div');
+            welcomeDiv.className = 'flex justify-center mb-4 w-full';
+            welcomeDiv.innerHTML = `
+                <div class="message-container assistant-message px-6 py-4 max-w-2xl">
+                    <div class="text-center">
+                        <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                        <h3 class="text-lg font-medium text-gray-900 mb-2">Welcome to Stel Docs AI!</h3>
+                        <p class="text-gray-600 mb-4">Upload documents and select them to start chatting. You can chat with one document or multiple documents simultaneously.</p>
+                        <div class="text-sm text-gray-500 space-y-1">
+                            <p>📄 Supported: PDF, Word, Excel, CSV, Text, Images</p>
+                            <p>🤖 Powered by Gemini 2.5 Pro for maximum accuracy</p>
+                            <p>🔄 Single or multi-document conversations</p>
+                            <p>💾 All conversations are automatically saved</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            chatMessages.appendChild(welcomeDiv);
         }
 
         // Handle chat messages
@@ -443,10 +1197,22 @@
             e.preventDefault();
             const message = messageInput.value.trim();
             if (!message) return;
+            
+            // Check if documents are selected
+            if (selectedDocuments.length === 0) {
+                alert('Please select at least one document to chat with!');
+                return;
+            }
+            
+            // Create or get session for current document selection
+            await ensureSessionForSelection();
 
             // Add user message to chat
             addMessageToChat('user', message);
             messageInput.value = '';
+            
+            // Show AI thinking animation
+            showAIThinking();
 
             try {
                 const response = await fetch(`/chat/${currentSessionId}/message/`, {
@@ -462,6 +1228,9 @@
                 const data = await response.json();
                 console.log('Raw chat response:', data);  // Debug full response
                 
+                // Hide thinking animation first
+                hideAIThinking();
+                
                 if (data.status === 'success') {
                     console.log('Full response content:', JSON.stringify(data.response, null, 2));  // Pretty print response
                     if (data.response.visualization) {
@@ -473,6 +1242,8 @@
                 }
             } catch (error) {
                 console.error('Error sending message:', error);
+                // Hide thinking animation on error
+                hideAIThinking();
                 addMessageToChat('assistant', `Error: ${error.message}`);
             }
         });
@@ -594,56 +1365,96 @@
             chatMessages.scrollTop = chatMessages.scrollHeight;
         }
 
-        // Create a new chat session
-        async function createChatSession(documentIds = []) {
-            try {
-                const response = await fetch('/chat/create/', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': csrfToken
-                    },
-                    body: JSON.stringify({ 
-                        title: 'New Chat',
-                        document_ids: documentIds
-                    }),
-                    credentials: 'include'
-                });
-
-                const data = await response.json();
-                if (data.status === 'success') {
-                    currentSessionId = data.session_id;
-                    console.log('Chat session created:', currentSessionId);
-                }
-            } catch (error) {
-                console.error('Error creating chat session:', error);
-                uploadStatus.textContent = 'Error creating chat session. Please try again.';
+        // Clear chat messages
+        function clearChatMessages() {
+            chatMessages.innerHTML = '';
+        }
+        
+        // Show AI thinking animation
+        function showAIThinking() {
+            // Remove any existing thinking animation
+            hideAIThinking();
+            
+            const thinkingDiv = document.createElement('div');
+            thinkingDiv.className = 'ai-thinking';
+            thinkingDiv.id = 'aiThinking';
+            thinkingDiv.innerHTML = `
+                <div class="robot-thinking">
+                    <svg class="robot-icon" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 2c.55 0 1 .45 1 1v1h1.5c.83 0 1.5.67 1.5 1.5v.5c1.1 0 2 .9 2 2v10c0 1.1-.9 2-2 2H8c-1.1 0-2-.9-2-2V8c0-1.1.9-2 2-2v-.5c0-.83.67-1.5 1.5-1.5H11V3c0-.55.45-1 1-1zm2 8c-.55 0-1 .45-1 1s.45 1 1 1 1-.45 1-1-.45-1-1-1zm-4 0c-.55 0-1 .45-1 1s.45 1 1 1 1-.45 1-1-.45-1-1-1zm2 4c-1.66 0-3 1.34-3 3h6c0-1.66-1.34-3-3-3z"/>
+                    </svg>
+                    <span class="font-medium">AI is thinking</span>
+                    <div class="thinking-dots">
+                        <div class="thinking-dot"></div>
+                        <div class="thinking-dot"></div>
+                        <div class="thinking-dot"></div>
+                    </div>
+                </div>
+            `;
+            
+            chatMessages.appendChild(thinkingDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+        
+        // Hide AI thinking animation
+        function hideAIThinking() {
+            const thinkingElement = document.getElementById('aiThinking');
+            if (thinkingElement) {
+                thinkingElement.remove();
             }
         }
 
-        // Add document to existing session
-        async function addDocumentToSession(sessionId, documentId) {
-            try {
-                const response = await fetch(`/chat/session/${sessionId}/add_document/${documentId}/`, {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRFToken': csrfToken
-                    },
-                    credentials: 'include'
-                });
 
-                const data = await response.json();
-                if (data.status !== 'success') {
-                    throw new Error(data.message);
+
+        // Event handlers
+        newChatBtn.addEventListener('click', createNewChat);
+        
+        clearChatBtn.addEventListener('click', () => {
+            if (confirm('Clear current chat history? This will only clear the display, not delete saved conversations.')) {
+                clearChatMessages();
+                if (selectedDocuments.length > 0) {
+                    showSelectedDocumentsInfo();
+                } else {
+                    showWelcomeMessage();
                 }
-            } catch (error) {
-                console.error('Error adding document to session:', error);
-                uploadStatus.textContent = 'Error adding document to chat session. Please try again.';
             }
-        }
-
-        // Initialize chat session
-        createChatSession();
+        });
+        
+        deleteChatBtn.addEventListener('click', () => {
+            if (currentSessionId) {
+                deleteSession(currentSessionId);
+            }
+        });
+        
+        multiDocMode.addEventListener('change', (e) => {
+            isMultiDocMode = e.target.checked;
+            if (!isMultiDocMode && selectedDocuments.length > 1) {
+                // Switch to single mode - keep only first selected document
+                selectedDocuments = selectedDocuments.slice(0, 1);
+            }
+            updateChatUI();
+            renderDocumentLibrary();
+            saveDocumentsToStorage();
+        });
+        
+        selectAllDocsBtn.addEventListener('click', () => {
+            selectedDocuments = [...allDocuments];
+            isMultiDocMode = true;
+            multiDocMode.checked = true;
+            updateChatUI();
+            renderDocumentLibrary();
+            saveDocumentsToStorage();
+        });
+        
+        selectNoneDocsBtn.addEventListener('click', () => {
+            selectedDocuments = [];
+            updateChatUI();
+            renderDocumentLibrary();
+            saveDocumentsToStorage();
+        });
+        
+        // Initialize the application
+        initializeApp();
     </script>
 </body>
 </html> 

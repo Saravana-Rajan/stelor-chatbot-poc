@@ -76,10 +76,18 @@ def upload_file(request):
                 document.is_processed = True
                 document.save()
                 
+                # Create a new chat session specifically for this document
+                session = ChatSession.objects.create(
+                    user=request.user,
+                    title=f"Chat with {document.original_filename}"
+                )
+                session.documents.add(document)
+                
                 return JsonResponse({
                     'status': 'success',
                     'message': 'File processed successfully',
-                    'document_id': str(document.id)
+                    'document_id': str(document.id),
+                    'session_id': str(session.id)
                 })
                 
             except Exception as e:
@@ -251,3 +259,71 @@ def get_chat_history(request, session_id):
             'status': 'error',
             'message': 'Chat session not found'
         }, status=404)
+
+@login_required
+def list_chat_sessions(request):
+    """List all chat sessions for the current user."""
+    try:
+        sessions = ChatSession.objects.filter(user=request.user).order_by('-created_at')
+        
+        sessions_data = []
+        for session in sessions:
+            # Get the latest message for preview
+            latest_message = session.messages.order_by('-created_at').first()
+            message_count = session.messages.count()
+            
+            sessions_data.append({
+                'id': str(session.id),
+                'title': session.title,
+                'created_at': session.created_at.isoformat(),
+                'message_count': message_count,
+                'latest_message': latest_message.content[:100] + '...' if latest_message and len(latest_message.content) > 100 else latest_message.content if latest_message else None,
+                'documents': [
+                    {
+                        'id': str(doc.id),
+                        'filename': doc.original_filename,
+                        'file_type': doc.file_type
+                    }
+                    for doc in session.documents.all()
+                ]
+            })
+        
+        return JsonResponse({
+            'status': 'success',
+            'sessions': sessions_data
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'message': str(e)
+        }, status=400)
+
+@login_required
+def delete_chat_session(request, session_id):
+    """Delete a chat session."""
+    if request.method == 'DELETE':
+        try:
+            session = ChatSession.objects.get(id=session_id, user=request.user)
+            session.delete()
+            
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Chat session deleted successfully'
+            })
+            
+        except ChatSession.DoesNotExist:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Chat session not found'
+            }, status=404)
+        except Exception as e:
+            return JsonResponse({
+                'status': 'error',
+                'message': str(e)
+            }, status=400)
+    
+    return JsonResponse({
+        'status': 'error',
+        'message': 'Invalid request method'
+    }, status=405)
