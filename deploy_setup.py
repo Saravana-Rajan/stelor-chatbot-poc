@@ -73,11 +73,10 @@ GOOGLE_API_KEY=your-google-gemini-api-key-here
     
     print("\n🎉 Deployment preparation complete!")
     print("\n📋 Next steps:")
-    print("1. Update your .env file with your actual Google API key")
-    print("2. Push your code to GitHub")
-    print("3. Connect GitHub to Render and deploy")
-    print("4. Follow the RENDER_DEPLOY.md guide")
-    print("5. Your SQLite database and ChromaDB embeddings will persist automatically!")
+    print("1. Update your .env file with actual values")
+    print("2. Follow the PythonAnywhere deployment guide")
+    print("3. Upload all files to PythonAnywhere")
+    print("4. Your SQLite database and ChromaDB embeddings will persist!")
     
     return True
 

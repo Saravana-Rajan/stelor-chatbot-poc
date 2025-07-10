@@ -12,4 +12,6 @@ chromadb>=0.4.22
 sentence-transformers>=2.5.1
 django-storages>=1.14.2
 plotly>=5.19.0
-numpy>=1.26.0 
+numpy>=1.26.0
+gunicorn>=21.2.0
+whitenoise>=6.6.0
