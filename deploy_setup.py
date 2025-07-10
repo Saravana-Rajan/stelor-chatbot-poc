@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Setup script for Render deployment
-Run this before pushing to GitHub and deploying on Render
+Setup script for Railway deployment
+Run this before pushing to GitHub and deploying on Railway
 """
 
 import os
@@ -20,7 +20,7 @@ def run_command(command):
         return False
 
 def main():
-    print("🚀 Preparing Stel Docs AI for Render deployment...")
+    print("🚀 Preparing Stel Docs AI for Railway deployment...")
     print()
     
     # Check if we're in the right directory
@@ -63,20 +63,23 @@ def main():
     else:
         print("⚠️  Creating .env file template...")
         with open(env_file, 'w') as f:
-            f.write("""# Environment variables for Render deployment
-# Render will auto-generate SECRET_KEY, but you can set it manually if needed
-SECRET_KEY=change-this-to-a-random-secret-key-or-let-render-generate
+            f.write("""# Environment variables for Railway deployment
+# Railway will auto-generate SECRET_KEY, but you can set it manually if needed
+SECRET_KEY=change-this-to-a-random-secret-key-or-let-railway-generate
 DEBUG=False
 GOOGLE_API_KEY=your-google-gemini-api-key-here
+PYTHONUNBUFFERED=1
 """)
         print(f"✅ Created {env_file} - Please update with your actual values!")
     
     print("\n🎉 Deployment preparation complete!")
     print("\n📋 Next steps:")
-    print("1. Update your .env file with actual values")
-    print("2. Follow the PythonAnywhere deployment guide")
-    print("3. Upload all files to PythonAnywhere")
-    print("4. Your SQLite database and ChromaDB embeddings will persist!")
+    print("1. Update your .env file with your actual Google API key")
+    print("2. Push your code to GitHub")
+    print("3. Connect GitHub to Railway and deploy")
+    print("4. Follow the RAILWAY_DEPLOY.md guide")
+    print("5. Your SQLite database and ChromaDB embeddings will persist automatically!")
+    print("\n🚀 Railway is perfect for AI/ML apps with 8GB RAM and persistent storage!")
     
     return True
 

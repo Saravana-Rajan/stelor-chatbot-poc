@@ -165,6 +165,12 @@ GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY')
 # Production settings for deployment
 if not DEBUG:
     # Security settings for production
-    SECURE_SSL_REDIRECT = False  # Render handles SSL
+    SECURE_SSL_REDIRECT = False  # Railway handles SSL
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
+    
+# Railway-specific optimizations
+if os.getenv('RAILWAY_ENVIRONMENT'):
+    # Railway provides these automatically
+    ALLOWED_HOSTS.append('.railway.app')
+    ALLOWED_HOSTS.append('.up.railway.app')
