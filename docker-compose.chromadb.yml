@@ -1,0 +1,109 @@
+version: '3.8'
+
+services:
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: chromadb-server
+    ports:
+      - "8000:8000"
+    volumes:
+      - chromadb_data:/chroma/chroma
+    environment:
+      - CHROMA_SERVER_CORS_ALLOW_ORIGINS=["*"]
+      - CHROMA_SERVER_HOST=0.0.0.0
+      - CHROMA_SERVER_HTTP_PORT=8000
+      - CHROMA_SERVER_GRPC_PORT=50051
+      - CHROMA_OTEL_COLLECTION_ENDPOINT=""
+      - CHROMA_OTEL_SERVICE_NAME="chromadb"
+      - CHROMA_OTEL_COLLECTION_HEADERS={}
+      - CHROMA_OTEL_GRANULARITY=None
+      - CHROMA_SERVER_AUTHN_CREDENTIALS_FILE=/chroma/auth.yml
+      - CHROMA_SERVER_AUTHN_PROVIDER=chromadb.auth.simple_rbac_authz.SimpleRBACAuthorizationProvider
+      - CHROMA_SERVER_AUTHZ_PROVIDER=chromadb.auth.simple_rbac_authz.SimpleRBACAuthorizationProvider
+    command: >
+      sh -c "chroma run --host 0.0.0.0 --port 8000 --path /chroma/chroma"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - chroma_network
+    restart: unless-stopped
+
+  # Optional: ChromaDB with authentication
+  chromadb-auth:
+    image: chromadb/chroma:latest
+    container_name: chromadb-auth-server
+    profiles: ["auth"]
+    ports:
+      - "8001:8000"
+    volumes:
+      - chromadb_auth_data:/chroma/chroma
+      - ./chromadb-auth.yml:/chroma/auth.yml:ro
+    environment:
+      - CHROMA_SERVER_CORS_ALLOW_ORIGINS=["*"]
+      - CHROMA_SERVER_HOST=0.0.0.0
+      - CHROMA_SERVER_HTTP_PORT=8000
+      - CHROMA_SERVER_AUTHN_CREDENTIALS_FILE=/chroma/auth.yml
+      - CHROMA_SERVER_AUTHN_PROVIDER=chromadb.auth.simple_rbac_authz.SimpleRBACAuthorizationProvider
+      - CHROMA_SERVER_AUTHZ_PROVIDER=chromadb.auth.simple_rbac_authz.SimpleRBACAuthorizationProvider
+    command: >
+      sh -c "chroma run --host 0.0.0.0 --port 8000 --path /chroma/chroma"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - chroma_network
+    restart: unless-stopped
+
+  # Optional: Redis for caching (production optimization)
+  redis:
+    image: redis:7-alpine
+    container_name: chroma-redis
+    profiles: ["cache"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    networks:
+      - chroma_network
+    restart: unless-stopped
+
+  # Optional: Monitoring with Prometheus
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: chroma-prometheus
+    profiles: ["monitoring"]
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+    networks:
+      - chroma_network
+    restart: unless-stopped
+
+volumes:
+  chromadb_data:
+    driver: local
+  chromadb_auth_data:
+    driver: local
+  redis_data:
+    driver: local
+  prometheus_data:
+    driver: local
+
+networks:
+  chroma_network:
+    driver: bridge 
