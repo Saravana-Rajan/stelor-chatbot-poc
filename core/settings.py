@@ -82,12 +82,17 @@ WSGI_APPLICATION = 'core.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
+
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.getenv('PGDATABASE'),
+            'USER': os.getenv('DATABASE_USER'),
+            'PASSWORD': os.getenv('DATABASE_PASSWORD'),
+            'HOST': os.getenv('DATABASE_HOST'),
+            'PORT': os.getenv('DATABASE_PORT', '5432'),
+        }
     }
-}
 
 
 # Password validation
@@ -161,6 +166,11 @@ os.makedirs(CHROMA_DB_DIR, exist_ok=True)  # Ensure directory exists
 
 # Gemini API settings
 GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY')
+
+# ChromaDB Cloud settings
+CHROMA_API_KEY = os.getenv('CHROMA_API_KEY')
+CHROMA_TENANT = os.getenv('CHROMA_TENANT')
+CHROMA_DATABASE = os.getenv('CHROMA_DATABASE')
 
 # Production settings for deployment
 if not DEBUG:

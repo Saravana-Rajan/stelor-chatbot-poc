@@ -28,28 +28,38 @@ model = genai.GenerativeModel('gemini-2.5-pro')
 # Initialize sentence transformer for embeddings
 embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
 
-# Initialize ChromaDB client
+# Initialize ChromaDB Cloud Client
+def get_chroma_client():
+    """Get ChromaDB Cloud Client with proper error handling."""
+    api_key = os.getenv('CHROMA_API_KEY')
+    tenant = os.getenv('CHROMA_TENANT')
+    database = os.getenv('CHROMA_DATABASE')
+    
+    if not all([api_key, tenant, database]):
+        raise Exception(
+            "ChromaDB credentials are not set in environment variables. "
+            "Set CHROMA_API_KEY, CHROMA_TENANT, and CHROMA_DATABASE."
+        )
+    
+    try:
+        client = chromadb.CloudClient(
+            api_key=api_key,
+            tenant=tenant,
+            database=database
+        )
+        print("DEBUG: ChromaDB Cloud client initialized successfully")
+        return client
+    except Exception as e:
+        print(f"ERROR initializing ChromaDB Cloud client: {str(e)}")
+        raise e
+
+# Initialize the global client
 try:
-    # Ensure ChromaDB directory exists
-    os.makedirs(settings.CHROMA_DB_DIR, exist_ok=True)
-    print(f"DEBUG: ChromaDB directory: {settings.CHROMA_DB_DIR}")
-    
-    # Configure ChromaDB settings
-    chroma_settings = chromadb.config.Settings(
-        is_persistent=True,
-        persist_directory=settings.CHROMA_DB_DIR,
-        allow_reset=True,
-        anonymized_telemetry=False
-    )
-    
-    chroma_client = chromadb.PersistentClient(
-        path=settings.CHROMA_DB_DIR,
-        settings=chroma_settings
-    )
-    print("DEBUG: ChromaDB client initialized")
+    chroma_client = get_chroma_client()
     collection = None
+    print("DEBUG: ChromaDB Cloud connection established")
 except Exception as e:
-    print(f"ERROR initializing ChromaDB client: {str(e)}")
+    print(f"ERROR establishing ChromaDB Cloud connection: {str(e)}")
     raise e
 
 def get_or_create_collection():
@@ -58,23 +68,13 @@ def get_or_create_collection():
     try:
         # Ensure client exists
         if chroma_client is None:
-            print("DEBUG: Reinitializing ChromaDB client")
-            os.makedirs(settings.CHROMA_DB_DIR, exist_ok=True)
-            chroma_settings = chromadb.config.Settings(
-                is_persistent=True,
-                persist_directory=settings.CHROMA_DB_DIR,
-                allow_reset=True,
-                anonymized_telemetry=False
-            )
-            chroma_client = chromadb.PersistentClient(
-                path=settings.CHROMA_DB_DIR,
-                settings=chroma_settings
-            )
+            print("DEBUG: Reinitializing ChromaDB Cloud client")
+            chroma_client = get_chroma_client()
         
         # Try to get the existing collection
         try:
             collection = chroma_client.get_collection(name="document_chunks")
-            print("DEBUG: Retrieved existing collection")
+            print("DEBUG: Retrieved existing collection from cloud")
         except Exception as e:
             print(f"DEBUG: Collection not found, creating new one: {str(e)}")
             # Create a new collection if it doesn't exist
@@ -82,7 +82,7 @@ def get_or_create_collection():
                 name="document_chunks",
                 metadata={"hnsw:space": "cosine"}
             )
-            print("DEBUG: Created new collection")
+            print("DEBUG: Created new collection in cloud")
         
         return collection
     except Exception as e:
@@ -103,22 +103,13 @@ def init_chroma():
     try:
         # Ensure client exists
         if chroma_client is None:
-            os.makedirs(settings.CHROMA_DB_DIR, exist_ok=True)
-            chroma_settings = chromadb.config.Settings(
-                is_persistent=True,
-                persist_directory=settings.CHROMA_DB_DIR,
-                allow_reset=True,
-                anonymized_telemetry=False
-            )
-            chroma_client = chromadb.PersistentClient(
-                path=settings.CHROMA_DB_DIR,
-                settings=chroma_settings
-            )
+            print("DEBUG: Initializing ChromaDB Cloud client")
+            chroma_client = get_chroma_client()
         
         # Force delete the existing collection if it exists
         try:
             chroma_client.delete_collection("document_chunks")
-            print("DEBUG: Deleted existing collection")
+            print("DEBUG: Deleted existing collection from cloud")
         except Exception as e:
             print(f"DEBUG: No existing collection to delete: {str(e)}")
         
@@ -127,7 +118,7 @@ def init_chroma():
             name="document_chunks",
             metadata={"hnsw:space": "cosine"}
         )
-        print("DEBUG: Created new collection")
+        print("DEBUG: Created new collection in cloud")
         return collection
     except Exception as e:
         print(f"ERROR initializing ChromaDB: {str(e)}")
