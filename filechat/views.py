@@ -2,6 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
 from .models import Document, DocumentChunk, ChatSession, ChatMessage
 from .utils import (
     detect_file_type, process_pdf, process_csv, process_txt,
@@ -12,13 +13,23 @@ import json
 import os
 from django.conf import settings
 
-@login_required
+def get_default_user():
+    """Get or create a default user for development purposes."""
+    user, created = User.objects.get_or_create(
+        username='dev_user',
+        defaults={
+            'email': 'dev@example.com',
+            'first_name': 'Dev',
+            'last_name': 'User'
+        }
+    )
+    return user
+
 @ensure_csrf_cookie
 def home(request):
     """Render the home page with file upload and chat interface."""
     return render(request, 'filechat/home.html')
 
-@login_required
 def upload_file(request):
     """Handle file upload and processing."""
     if request.method == 'POST' and request.FILES.get('file'):
@@ -30,10 +41,11 @@ def upload_file(request):
                 reset_chroma_collection()
             
             # Save the file
+            user = get_default_user()
             document = Document.objects.create(
                 file=file,
                 original_filename=file.name,
-                uploaded_by=request.user
+                uploaded_by=user
             )
             
             # Create media directory if it doesn't exist
@@ -78,7 +90,7 @@ def upload_file(request):
                 
                 # Create a new chat session specifically for this document
                 session = ChatSession.objects.create(
-                    user=request.user,
+                    user=user,
                     title=f"Chat with {document.original_filename}"
                 )
                 session.documents.add(document)
@@ -108,7 +120,6 @@ def upload_file(request):
         'message': 'Invalid request'
     }, status=400)
 
-@login_required
 def create_chat_session(request):
     """Create a new chat session."""
     if request.method == 'POST':
@@ -116,8 +127,9 @@ def create_chat_session(request):
             data = json.loads(request.body)
             document_ids = data.get('document_ids', [])
             
+            user = get_default_user()
             session = ChatSession.objects.create(
-                user=request.user,
+                user=user,
                 title=data.get('title', 'New Chat')
             )
             
@@ -140,12 +152,12 @@ def create_chat_session(request):
         'message': 'Invalid request'
     }, status=400)
 
-@login_required
 def add_document_to_session(request, session_id, document_id):
     """Add a document to an existing chat session."""
     try:
-        session = get_object_or_404(ChatSession, id=session_id, user=request.user)
-        document = get_object_or_404(Document, id=document_id, uploaded_by=request.user)
+        user = get_default_user()
+        session = get_object_or_404(ChatSession, id=session_id, user=user)
+        document = get_object_or_404(Document, id=document_id, uploaded_by=user)
         
         session.documents.add(document)
         
@@ -159,13 +171,13 @@ def add_document_to_session(request, session_id, document_id):
             'message': str(e)
         }, status=400)
 
-@login_required
 def send_message(request, session_id):
     """Handle chat messages and generate responses."""
     if request.method == 'POST':
         try:
             print("DEBUG: Starting message processing")
-            session = ChatSession.objects.get(id=session_id, user=request.user)
+            user = get_default_user()
+            session = ChatSession.objects.get(id=session_id, user=user)
             data = json.loads(request.body)
             message = data.get('message')
             
@@ -234,11 +246,11 @@ def send_message(request, session_id):
         'message': 'Invalid request'
     }, status=400)
 
-@login_required
 def get_chat_history(request, session_id):
     """Get chat history for a session."""
     try:
-        session = ChatSession.objects.get(id=session_id, user=request.user)
+        user = get_default_user()
+        session = ChatSession.objects.get(id=session_id, user=user)
         messages = ChatMessage.objects.filter(session=session)
         
         return JsonResponse({
@@ -260,11 +272,11 @@ def get_chat_history(request, session_id):
             'message': 'Chat session not found'
         }, status=404)
 
-@login_required
 def list_chat_sessions(request):
     """List all chat sessions for the current user."""
     try:
-        sessions = ChatSession.objects.filter(user=request.user).order_by('-created_at')
+        user = get_default_user()
+        sessions = ChatSession.objects.filter(user=user).order_by('-created_at')
         
         sessions_data = []
         for session in sessions:
@@ -299,12 +311,12 @@ def list_chat_sessions(request):
             'message': str(e)
         }, status=400)
 
-@login_required
 def delete_chat_session(request, session_id):
     """Delete a chat session."""
     if request.method == 'DELETE':
         try:
-            session = ChatSession.objects.get(id=session_id, user=request.user)
+            user = get_default_user()
+            session = ChatSession.objects.get(id=session_id, user=user)
             session.delete()
             
             return JsonResponse({
