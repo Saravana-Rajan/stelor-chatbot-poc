@@ -18,6 +18,7 @@ import plotly.graph_objects as go
 import numpy as np
 from datetime import datetime
 import re
+import time
 
 load_dotenv()
 
@@ -173,15 +174,20 @@ def process_pdf(file_path: str) -> List[Dict[str, Any]]:
         for page_num, page in enumerate(pdf.pages, 1):
             text = page.extract_text()
             if text:
-                chunks.append({
-                    'content': text,
-                    'page_number': page_num,
-                    'metadata': {
-                        'file_type': 'pdf',
-                        'page': page_num
-                    }
-                })
-    
+                # Clean the text by removing null bytes and other problematic characters
+                text = text.replace('\x00', '').replace('\0', '')
+                # Also remove other control characters that might cause issues
+                text = ''.join(char for char in text if ord(char) >= 32 or char in '\n\r\t')
+                
+                if text.strip():  # Only add if there's actual content after cleaning
+                    chunks.append({
+                        'content': text,
+                        'page_number': page_num,
+                        'metadata': {
+                            'file_type': 'pdf',
+                            'page': page_num
+                        }
+                    })
     return chunks
 
 def process_csv(file_path: str) -> List[Dict[str, Any]]:
@@ -400,6 +406,7 @@ def store_chunks(chunks: List[Dict[str, Any]], document_id: str):
                     metadatas=[metadata]
                 )
                 print(f"DEBUG: Successfully stored chunk {i}")
+                time.sleep(0.8)  # Match local timing of ~1 chunk per second
             except Exception as e:
                 print(f"ERROR storing chunk {i}: {str(e)}")
                 # Continue with next chunk instead of failing completely
